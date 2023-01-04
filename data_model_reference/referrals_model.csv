@@ -1,0 +1,11 @@
+name,class
+REFERRAL_ID_NUM,character
+PATIENT_ID_NUM,character
+FACILITY_NAME,character
+VISIT_ID_NUM,character
+APPT_ID_NUM,character
+EVENT_DATE,Date
+DATA_VALUE_TYPE,character
+DATA_VALUE_CODE,character
+DATA_VALUE_SPECIFY,character
+REFERRAL_PROVIDER_TYPE,character
