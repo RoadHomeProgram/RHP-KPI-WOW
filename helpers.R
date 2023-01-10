@@ -1,3 +1,5 @@
+library(lubridate)
+
 #concatonates two strings together
 "%&%" = function(a,b) paste0(a,b)
 
@@ -6,3 +8,4 @@ isEmpty<-function(vec){
   return(sum(is.na(vec) | vec == "") == length(vec))
 }
 
+timestamp<-gsub(' ','_',now())
