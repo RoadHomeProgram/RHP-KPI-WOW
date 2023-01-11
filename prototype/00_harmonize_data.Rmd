@@ -1,0 +1,75 @@
+---
+title: "cleanup rush data"
+author: "ryan schubert"
+date: "10/19/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+"%&%" = function(a,b) paste0(a,b)
+```
+
+
+#data harmonization
+#sometimes data is ill formatted in between sets of data
+#for example a date may be a "character" in one set of data and a "Date" object in another
+#to this end it is necessary to preprocess data so that they are harmonic
+
+here rush's dates are poorly formatted so this is to clean them
+
+```{r}
+in.dir<-"/Users/ryanschubert/Dropbox (Rush)/WCN Data/original/Rush/"
+out.dir<-"/Users/ryanschubert/Dropbox (Rush)/WCN Data/processedData/dashboardData/Rush/"
+iterables<-list.files(in.dir)
+iterables<-iterables[!grepl('archive',iterables) & !grepl('Icon',iterables)]
+for ( i in 1:length(iterables)) {
+  rushdata<-fread(in.dir %&% iterables[i])
+  index<-which(grepl("date",colnames(rushdata),ignore.case=T))
+  updated<-rushdata[,..index] %>% lapply(.,as.Date,format = "%m/%d/%Y")
+  rushdata[,index]<-updated
+  if(grepl('patient',iterables[i])) {
+    rushdata <- rushdata %>% mutate(ZIP_CODE=as.integer(ZIP_CODE))
+  }
+  fwrite(rushdata,out.dir %&% iterables[i])
+}
+
+```
+Rush's zip codes are also poorly formatted so we will coerce it to numeric
+
+```{r}
+data<-fread("/Users/ryanschubert/Dropbox (Rush)/WCN Data/processedData/dashboardData/Rush/patient_data_202211.txt"   )
+str(data$ZIP_CODE)
+```
+
+UCLA's visits data has an extra field so we will strip that out
+
+```{r}
+in.dir<-"/Users/ryanschubert/Dropbox (Rush)/WCN Data/original/UCLA/202212/"
+out.dir<-"/Users/ryanschubert/Dropbox (Rush)/WCN Data/processedData/dashboardData/UCLA/"
+targetFile<-list.files(in.dir)[grepl('^visit',list.files(in.dir))]
+UCLAnames<-colnames(fread(in.dir %&% targetFile,nrow=1,header=T))
+UCLAraw<-fread(in.dir %&% targetFile,skip=1)
+UCLAraw<-UCLAraw %>% select(-V18)
+colnames(UCLAraw)<-UCLAnames[1:17]
+fwrite(UCLAraw,out.dir %&% targetFile)
+
+```
+
+UCLA also has an extra field in their referral datasets
+
+```{r}
+in.dir<-"/Users/ryanschubert/Dropbox (Rush)/WCN Data/original/UCLA/202212/"
+out.dir<-"/Users/ryanschubert/Dropbox (Rush)/WCN Data/processedData/dashboardData/UCLA/"
+targetFile<-list.files(in.dir)[grepl('^referral',list.files(in.dir))]
+UCLAraw<-fread(in.dir %&% targetFile) %>% select(-V11)
+fwrite(UCLAraw,out.dir %&% targetFile)
+```
+
+EMORY -> 6404fd27e7b6f19f60add56c06909a8a0f81b877a49b480c34ecae3a3dcb32d6-E1IO1-P-0-0 has duplicate entries in assessments
+
+```{r}
+
+in.dir<-"/Users/ryanschubert/Dropbox (Rush)/WCN Data/original/EMORY/"
+out.dir<-"/Users/ryanschubert/Dropbox (Rush)/WCN Data/processedData/dashboardData/UCLA/"
+```
+
