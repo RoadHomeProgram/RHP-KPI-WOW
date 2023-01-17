@@ -1,2 +1,5 @@
 .env
 logs/*
+test/*
+debug/*
+.DS_store

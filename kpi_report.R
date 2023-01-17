@@ -13,27 +13,6 @@ scoring.dir<-"/Users/ryanschubert/Dropbox (Rush)/WCN Data/processedData/dashboar
 source(scoring.dir %&% "R ScoringVR12score_vrData.R")
 source("/Users/ryanschubert/Documents/RHP-KPI-WOW/helpers.R")
 
-#this function returns a dataset containing patients captured in the current fiscal year
-inFiscalYear<-function() {
-  
-}
-
-therapyList<-function() {
-
-}
-
-#this function returns a dataset with veterans who have at least one treatment according to the master list of therapies
-withTreatment<-function(data) {
-  vets_with_treatment<-data %>%
-    filter(SERVICE_PERFORMED %in% master_list_services$TreatmentID) %>%
-    select(PATIENT_ID_NUM) %>%
-    arrange() %>%
-    distinct() %>%
-    unlist() %>%
-    unname()
-  return(vets_with_treatment)
-}
-
 #returns the correct assessment end term
 #1 for all variables except for vr12 items
 assessmentTermEnd<-function(metric){
@@ -44,19 +23,70 @@ assessmentTermEnd<-function(metric){
   }
 }
 
-#this function processes the assessments calculate the percentage of individuals meeting some change sore threshold on a given metric
-calcOutcomes<-function(data,metric,threshold){
-  processedData<-data %>%
-    filter(grepl(metric,ASSESSMENT_TYPE,ignore.case=T),
-    ASSESSMENT_TERM == assertAssessmentTermEnd(metric) | ASSESSMENT_TERM == 0,
-    PATIENT_ID_NUM %in% vets_with_treatment) 
-  removeEmpty<-emptyColumns(processedData)
-  processedData<-processedData[,-removeEmpty]
-  processedData
+#this function returns a dataset containing patients with an endpoint assessment for a given metric in the current fiscal year
+inFiscalYear<-function(data,metric) {
+  data<-data %>%
+    mutate(inFiscalYear=ASSESSMENT_DATE> determineFYStart(cutoff))
+  inYear<-data %>%
+    filter(ASSESSMENT_TERM == assessmentTermEnd(metric),
+          inFiscalYear) %>%
+    select(PATIENT_ID_NUM) %>%
+    arrange() %>%
+    distinct() %>%
+    unlist() %>% 
+    unname()
+  data<-data %>%
+    filter(PATIENT_ID_NUM  %in% inYear)
+  return(data)
+}
+
+therapyList<-function() {
 
 }
 
-generateTable1<-function(){
+#this function returns a dataset with veterans who have at least one treatment according to the master list of therapies
+withTreatment<-function(data,services=master_list_services) {
+  vets_with_treatment<-data %>%
+    filter(SERVICE_PERFORMED %in% master_list_services$TreatmentID) %>%
+    select(PATIENT_ID_NUM) %>%
+    arrange() %>%
+    distinct() %>%
+    unlist() %>%
+    unname()
+  return(vets_with_treatment)
+}
+
+#this function processes the assessments to calculate the percentage of individuals meeting some change sore threshold on a given metric in the current fiscal year
+calcOutcomes<-function(data,metric,threshold,cutoff=today){
+  processedData<-data %>%
+    filter(grepl(metric,ASSESSMENT_TYPE,ignore.case=T),
+    ASSESSMENT_TERM == assessmentTermEnd(metric) | ASSESSMENT_TERM == 0,
+    PATIENT_ID_NUM %in% vets_with_treatment) 
+  removeEmpty<-!emptyColumns(processedData)
+  processedData<-processedData[,..removeEmpty]
+  processedData<-processedData %>%
+    mutate(ASSESSMENT_DATE=as.Date(ASSESSMENT_DATE, format="%m/%d/%Y")) %>%
+    group_by(PATIENT_ID_NUM,ASSESSMENT_TERM) %>%
+    slice_max(ASSESSMENT_DATE,n=1,with_ties = F) %>%
+    ungroup() %>%
+    inFiscalYear(metric=metric)
+  sum_scores<-processedData %>% 
+    select(contains("ASSESSMENT_RESPONSE_VALUE")) %>%
+    apply(1,sum)
+  processedData<-cbind.data.frame(processedData,sum_scores)
+  sanitized<-processedData %>%
+    select(PATIENT_ID_NUM,ASSESSMENT_TERM,sum_scores) %>%
+    pivot_wider(id_cols=PATIENT_ID_NUM,
+                names_from=ASSESSMENT_TERM,
+                values_from = sum_scores) %>%
+    mutate(delta=`0`-`1`,
+            meetsThreshold=delta>=threshold)
+  res<-table(sanitized$meetsThreshold)/sum(table(sanitized$meetsThreshold)) * 100
+  return(res[2])
+
+}
+
+generateTable1<-function(data,cutoff=today){
   questions<-c(
     "% of participants that reduce their PCL score by 5 points or more",
     "% of participants that reduce their PCL score by 10 points or more",
@@ -69,28 +99,11 @@ generateTable1<-function(){
   table1<-data.frame(question=questions,
                      value=rep(NA,7))
   
-  PCLVetFAM<-assessments %>%
-    filter(grepl("PCL",ASSESSMENT_TYPE,ignore.case=T),
-           SERVICE_LINE=="IOP",
-           ASSESSMENT_TERM == 1 | ASSESSMENT_TERM ==0,
-           PATIENT_ID_NUM %in% vets_with_treatment$PATIENT_ID_NUM) %>%
-    select(-one_of(c("ASSESSMENT_RESPONSE_VALUE21","ASSESSMENT_RESPONSE_VALUE22"))) %>%
-    filter ((ASSESSMENT_TYPE == "PCL5" & ASSESSMENT_TERM == 0) | (ASSESSMENT_TYPE == "PCL5W" & ASSESSMENT_TERM == 1)) %>%
-    mutate(ASSESSMENT_DATE=as.Date(ASSESSMENT_DATE, format="%m/%d/%Y"),
-           inFiscalYear=ASSESSMENT_DATE> quarters$startDates[5]) %>%
-    group_by(PATIENT_ID_NUM,ASSESSMENT_TERM) %>%
-    slice_max(ASSESSMENT_DATE,n=1) %>%
-    ungroup()
-  
-  removalFreq <-table(PCLVetFAM$PATIENT_ID_NUM,PCLVetFAM$ASSESSMENT_TERM) %>%
-    as.data.frame() %>%
-    filter(Freq!=1) %>%
-    select(Var1) %>%
-    mutate(Var1=as.character(Var1)) %>%
-    arrange() %>%
-    distinct() %>%
-    unlist() %>% 
-    unname()
+  table1[1,2]<-calcOutcomes(data=data,metric='PCL',threshold=5,cutoff=cutoff)
+  table1[2,2]<-calcOutcomes(data=data,metric='PCL',threshold=10,cutoff=cutoff)
+  table1[3,2]<-calcOutcomes(data=data,metric='PHQ',threshold=3,cutoff=cutoff)
+  table1[4,2]<-100-calcOutcomes(data=data,metric='CDRISC',threshold=-1,cutoff=cutoff)
+  return(table1)
 }
 
 generateTable2<-function(){
@@ -106,6 +119,8 @@ generateTable4<-function(){
 }
 
 
+
+
 generateKPIreport<-function(in.dir,masterListFile,out.dir,cutoffDate=today) {
   #this chuck just reads in the current
   assessments<-fread(in.dir %&% "assessment_2023-01-09.csv",na=c("99","999","NA",""))
@@ -113,16 +128,20 @@ generateKPIreport<-function(in.dir,masterListFile,out.dir,cutoffDate=today) {
   visits<-fread(in.dir %&% "visit_2023-01-09.csv",na=c("99","999","NA",""))
   referrals<-fread(in.dir %&% "referral_2023-01-09.csv",na=c("99","999","NA",""))
   satisfaction<-fread(in.dir %&% "satisfaction_2023-01-09.csv",na=c("99","999","NA",""))
-  master_list_services<-fread(masterListFile,na=c("")) %>%
+  master_list_services<-fread("/Users/ryanschubert/Dropbox (Rush)/Ryan's stuff/rush/remake KPI/Master List of therapies.csv",na=c("")) %>%
     filter(!is.na(`Treatment*`)) %>%
     rename(Treatment="Treatment*") %>%
     separate(`Master List of Therapies and Services (# = CDS value)`,into=c("TreatmentID"),sep=" ") %>% 
     mutate(TreatmentID=as.integer(TreatmentID))
   
+  vets_with_treatment<-withTreatment(visits)
   fiscalYearStart<-determineFiscalYear(cutoffDate)
   quarters<-createQuarterTemplate(cutoffDate)
   
-
+  tmp<-generateTable1(data=assessments)
+    
+  
+  
 }
 
 

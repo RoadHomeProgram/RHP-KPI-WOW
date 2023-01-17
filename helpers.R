@@ -2,6 +2,7 @@ library(lubridate)
 
 #concatonates two strings together
 "%&%" = function(a,b) paste0(a,b)
+"%_%" = function(a,b) paste(a,b,sep="_")
 
 #identifies if a given vector is empty
 isEmpty<-function(vec) {
