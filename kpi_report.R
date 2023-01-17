@@ -149,11 +149,13 @@ medianHours<-function(data,quarterly=FALSE) {
                 Total_visits=n()) %>%
         ungroup()
         if(quarterly) {
-            data<-group_by(quarterly,SERVICE_LINE,PATIENT_TYPE) %>%
+            data<-data %>%
+              group_by(quarter,SERVICE_LINE,PATIENT_TYPE) %>%
                 summarise(median_hours=median(total_hours),
                         median_visits=median(Total_visits))
         } else {
-            data<-group_by(SERVICE_LINE,PATIENT_TYPE) %>%
+            data<-data %>%
+              group_by(SERVICE_LINE,PATIENT_TYPE) %>%
                 summarise(median_hours=median(total_hours),
                         median_visits=median(Total_visits))
         }
@@ -162,9 +164,9 @@ medianHours<-function(data,quarterly=FALSE) {
 
 generateTables2_3_4_5<-function(patients,visits) {
 
-    prepocessedEngagement<-preprocessEngagement(patients,visits)
+    preprocessedEngagement<-preprocessEngagement(patients,visits)
 
-    table2<-prepocessedEngagement %>%
+    table2<-preprocessedEngagement %>%
         group_by(quarter,SERVICE_LINE,PATIENT_TYPE) %>%
         count()
 
@@ -186,9 +188,9 @@ generateTables2_3_4_5<-function(patients,visits) {
         group_by(quarter,PATIENT_ID_NUM,SERVICE_LINE,PATIENT_TYPE) %>%
         medianHours(quarterly=TRUE)
 
-    table4_5<-left_join(tmp1,tmp2,by=c("quarter","SERVICE_LINE","PATIENT_TYPE"))
+    table4_5<-left_join(average_hours_quarterly,median_hours_quarterly,by=c("quarter","SERVICE_LINE","PATIENT_TYPE"))
 
-    return(list(table3,table2,table4_5))
+    return(list(table2,table3,table4_5))
 }
 
 
