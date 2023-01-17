@@ -3,9 +3,9 @@ library(dplyr)
 library(tidyr)
 "%&%" = function(a,b) paste0(a,b)
 "%_%" = function(a,b) paste(a,b,sep='_')
-generateDataset<-function(in.dir,out.dir){
-  assessments<-fread(in.dir %&% "assessment_2023-01-09.csv",na=c("99","999"))
-  patients<-fread(in.dir %&% "patient_2023-01-09.csv",na=c("99","999"))
+generateDataset<-function(assessments,patients,out.dir){
+  assessments<-fread(assessments,na=c("99","999"))
+  patients<-fread(patients,na=c("99","999"))
   
   longScores<-assessments %>%
       group_by(PATIENT_ID_NUM,ASSESSMENT_TERM,FACILITY_NAME,ASSESSMENT_TYPE,SERVICE_LINE) %>%
@@ -29,10 +29,11 @@ generateDataset<-function(in.dir,out.dir){
   summary_scores<-longScores %>% 
     group_by(PATIENT_ID_NUM,ASSESSMENT_TERM,FACILITY_NAME,ASSESSMENT_TYPE,SERVICE_LINE) %>%
     summarise(sumScore=sum(value)) %>%
-    mutate(ASSESSMENT_TYPE = if_else(ASSESSMENT_TYPE == "PCL5W",'PCL5',ASSESSMENT_TYPE)) %>%
+    mutate(ASSESSMENT_TYPE = ASSESSMENT_TYPE %_% 'Total') %>%
     pivot_wider(id_cols = c(PATIENT_ID_NUM,FACILITY_NAME,SERVICE_LINE),
                 names_from=c(ASSESSMENT_TYPE,ASSESSMENT_TERM),
                 values_from = sumScore) %>%
+    select(-(starts_with('MCS') | starts_with('PCS'))) %>%
     select(PATIENT_ID_NUM,FACILITY_NAME,SERVICE_LINE,ends_with('_0') | ends_with('_1') | ends_with('_9001') | ends_with('_9002') | ends_with('_9003')) %>%
     rename_with(.fn=function(x){gsub('_0','_Base',x)}) %>%
     rename_with(.fn=function(x){gsub('_1','_Post',x)}) %>%
@@ -54,10 +55,11 @@ generateDataset<-function(in.dir,out.dir){
                 ends_with('_6Month'),
                 ends_with('_12Month'))
   output<-right_join(patients,wideScores,by=c("PATIENT_ID_NUM","FACILITY_NAME")) %>% 
-    left_join(summary_scores,by=c("PATIENT_ID_NUM","SERVICE_LINE","FACILITY_NAME")) 
+    left_join(summary_scores,by=c("PATIENT_ID_NUM","SERVICE_LINE","FACILITY_NAME")) %>%
+    select(-V42)
   #pivot the assessment values longer
   #create item number from assessment value column name
   #then paste item number, assessment term, and assessment type together
   #then pivot wider based on that
-  fwrite(output,out.dir %&% "pcl_scores_research_grade" %_% as.Date(Sys.Date()) %&% ".csv")
+  fwrite(output,out.dir %&% "Cross_Site_wide_dataset" %_% as.Date(Sys.Date()) %&% ".csv")
 }
