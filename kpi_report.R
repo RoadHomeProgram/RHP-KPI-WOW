@@ -129,7 +129,8 @@ preprocessEngagement<-function(patients,visits) {
            )) %>%
     filter(!is.na(quarter),
            SERVICE_DURATION > 0) %>%
-    left_join(patientType,by=c("PATIENT_ID_NUM")) 
+    left_join(patientType,by=c("PATIENT_ID_NUM"))
+  return(visits_quarterly_summary)
 }
 
 averageHours<-function(data) {
