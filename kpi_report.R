@@ -113,16 +113,81 @@ generateTable1<-function(assessments,cutoff=today){
   return(table1)
 }
 
-generateTable2<-function(){
-  
+preprocessEngagement<-function(patients,visits) {
+  patientType<-patients %>%
+    select(PATIENT_ID_NUM,PATIENT_TYPE)
+
+  visits_quarterly_summary<-visits %>%
+    mutate(SERVICE_DATE=as.Date(SERVICE_DATE,"%Y-%m-%d"),
+           quarter=case_when(
+             SERVICE_DATE >= quarters$startDates[1] ~ quarters$quarter[1],
+             SERVICE_DATE >= quarters$startDates[2] ~ quarters$quarter[2],
+             SERVICE_DATE >= quarters$startDates[3] ~ quarters$quarter[3],
+             SERVICE_DATE >= quarters$startDates[4] ~ quarters$quarter[4],
+             SERVICE_DATE >= quarters$startDates[5] ~ quarters$quarter[5],
+             T ~ NA_character_
+           )) %>%
+    filter(!is.na(quarter),
+           SERVICE_DURATION > 0) %>%
+    left_join(patientType,by=c("PATIENT_ID_NUM")) 
 }
 
-generateTable3<-function(){
-  
+averageHours<-function(data) {
+    data<-data %>%
+        summarise(Total_Patients=n_distinct(PATIENT_ID_NUM),
+                Total_Hours=sum(SERVICE_DURATION)/60,
+                Total_Visits=n()) %>%
+        mutate(Avg_Sessions=Total_Visits/Total_Patients,
+            Avg_Hours=Total_Hours/Total_Patients)
+    return(data)
 }
 
-generateTable4<-function(){
-  
+medianHours<-function(data,quarterly=FALSE) {
+    data<-data %>%
+        summarise(total_hours=sum(SERVICE_DURATION)/60,
+                Total_visits=n()) %>%
+        ungroup()
+        if(quarterly) {
+            data<-group_by(quarterly,SERVICE_LINE,PATIENT_TYPE) %>%
+                summarise(median_hours=median(total_hours),
+                        median_visits=median(Total_visits))
+        } else {
+            data<-group_by(SERVICE_LINE,PATIENT_TYPE) %>%
+                summarise(median_hours=median(total_hours),
+                        median_visits=median(Total_visits))
+        }
+    return(data)
+}
+
+generateTables2_3_4_5<-function(patients,visits) {
+
+    prepocessedEngagement<-preprocessEngagement(patients,visits)
+
+    table2<-prepocessedEngagement %>%
+        group_by(quarter,SERVICE_LINE,PATIENT_TYPE) %>%
+        count()
+
+    average_hours_summary<-preprocessedEngagement %>%
+        group_by(SERVICE_LINE,PATIENT_TYPE) %>%
+        averageHours()
+    
+    median_hours_summary<-preprocessedEngagement %>%
+        group_by(PATIENT_ID_NUM,SERVICE_LINE,PATIENT_TYPE) %>%
+        medianHours()
+
+    table3<-left_join(average_hours_summary,median_hours_summary,by=c("SERVICE_LINE","PATIENT_TYPE"))
+
+    average_hours_quarterly<-preprocessedEngagement %>%
+        group_by(quarter,SERVICE_LINE,PATIENT_TYPE) %>%
+        averageHours()
+
+    median_hours_quarterly<-preprocessedEngagement %>%
+        group_by(quarter,PATIENT_ID_NUM,SERVICE_LINE,PATIENT_TYPE) %>%
+        medianHours(quarterly=TRUE)
+
+    table4_5<-left_join(tmp1,tmp2,by=c("quarter","SERVICE_LINE","PATIENT_TYPE"))
+
+    return(list(table3,table2,table4_5))
 }
 
 
@@ -145,10 +210,10 @@ generateKPIreport<-function(in.dir,masterListFile,out.dir,cutoffDate=today) {
   fiscalYearStart<-determineFiscalYear(cutoffDate)
   quarters<-createQuarterTemplate(cutoffDate)
   
-  tmp<-generateTable1(assessments)
-  tmp[7,2]<-calcSatisfaction(satisfaction)
+  table1<-generateTable1(assessments)
+  table1[7,2]<-calcSatisfaction(satisfaction)
     
-  
+  tables2_3_4_5<-generateTables2_3_4_5(patients,visits)
   
 }
 
