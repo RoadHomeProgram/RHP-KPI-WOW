@@ -8,9 +8,6 @@ library(tidyr)
 library(readxl)
 library(writexl)
 
-# string concat function
-scoring.dir<-"/Users/ryanschubert/Dropbox (Rush)/WCN Data/processedData/dashboardData/VR12score/"
-source(scoring.dir %&% "R ScoringVR12score_vrData.R")
 source("/Users/ryanschubert/Documents/RHP-KPI-WOW/helpers.R")
 
 #returns the correct assessment end term
@@ -40,9 +37,6 @@ inFiscalYear<-function(data,metric) {
   return(data)
 }
 
-therapyList<-function() {
-
-}
 
 #this function returns a dataset with veterans who have at least one treatment according to the master list of therapies
 withTreatment<-function(data,services=master_list_services) {
@@ -86,7 +80,18 @@ calcOutcomes<-function(data,metric,threshold,cutoff=today){
 
 }
 
-generateTable1<-function(data,cutoff=today){
+calcSatisfaction<-function(satisfaction) {
+  withResponse<-satisfaction %>%
+    mutate(SURVEY_DATE=as.Date(SURVEY_DATE,"%Y-%m-%d")) %>%
+    filter(!is.na(OVERALL_SATISFACTION),
+           SERVICE_LINE == "IOP",
+           SURVEY_DATE>=quarters$startDates[5]) #1301
+  positiveResponse<-filter(withResponse,OVERALL_SATISFACTION == "A" | OVERALL_SATISFACTION == "SA")
+  res<-nrow(positiveResponse)/sum(!is.na(withResponse$OVERALL_SATISFACTION)) * 100
+  return(res)
+}
+
+generateTable1<-function(assessments,cutoff=today){
   questions<-c(
     "% of participants that reduce their PCL score by 5 points or more",
     "% of participants that reduce their PCL score by 10 points or more",
@@ -99,10 +104,12 @@ generateTable1<-function(data,cutoff=today){
   table1<-data.frame(question=questions,
                      value=rep(NA,7))
   
-  table1[1,2]<-calcOutcomes(data=data,metric='PCL',threshold=5,cutoff=cutoff)
-  table1[2,2]<-calcOutcomes(data=data,metric='PCL',threshold=10,cutoff=cutoff)
-  table1[3,2]<-calcOutcomes(data=data,metric='PHQ',threshold=3,cutoff=cutoff)
-  table1[4,2]<-100-calcOutcomes(data=data,metric='CDRISC',threshold=-1,cutoff=cutoff)
+  table1[1,2]<-calcOutcomes(data=assessments,metric='PCL',threshold=5,cutoff=cutoff)
+  table1[2,2]<-calcOutcomes(data=assessments,metric='PCL',threshold=10,cutoff=cutoff)
+  table1[3,2]<-calcOutcomes(data=assessments,metric='PHQ',threshold=3,cutoff=cutoff)
+  table1[4,2]<-100-calcOutcomes(data=assessments,metric='CDRISC',threshold=-1,cutoff=cutoff)
+  table1[5,2]<-100-calcOutcomes(data=assessments,metric='MCS',threshold=-2,cutoff=cutoff)
+  table1[6,2]<-100-calcOutcomes(data=assessments,metric='PCS',threshold=-2,cutoff=cutoff)
   return(table1)
 }
 
@@ -123,11 +130,11 @@ generateTable4<-function(){
 
 generateKPIreport<-function(in.dir,masterListFile,out.dir,cutoffDate=today) {
   #this chuck just reads in the current
-  assessments<-fread(in.dir %&% "assessment_2023-01-09.csv",na=c("99","999","NA",""))
-  patients<-fread(in.dir %&% "patient_2023-01-09.csv",na=c("99","999","NA",""))
-  visits<-fread(in.dir %&% "visit_2023-01-09.csv",na=c("99","999","NA",""))
-  referrals<-fread(in.dir %&% "referral_2023-01-09.csv",na=c("99","999","NA",""))
-  satisfaction<-fread(in.dir %&% "satisfaction_2023-01-09.csv",na=c("99","999","NA",""))
+  assessments<-fread(in.dir %&% "assessment_2023-01-17.csv",na=c("99","999","NA",""))
+  patients<-fread(in.dir %&% "patient_2023-01-17.csv",na=c("99","999","NA",""))
+  visits<-fread(in.dir %&% "visit_2023-01-17.csv",na=c("99","999","NA",""))
+  referrals<-fread(in.dir %&% "referral_2023-01-17.csv",na=c("99","999","NA",""))
+  satisfaction<-fread(in.dir %&% "satisfaction_2023-01-17.csv",na=c("99","999","NA",""))
   master_list_services<-fread("/Users/ryanschubert/Dropbox (Rush)/Ryan's stuff/rush/remake KPI/Master List of therapies.csv",na=c("")) %>%
     filter(!is.na(`Treatment*`)) %>%
     rename(Treatment="Treatment*") %>%
@@ -138,7 +145,8 @@ generateKPIreport<-function(in.dir,masterListFile,out.dir,cutoffDate=today) {
   fiscalYearStart<-determineFiscalYear(cutoffDate)
   quarters<-createQuarterTemplate(cutoffDate)
   
-  tmp<-generateTable1(data=assessments)
+  tmp<-generateTable1(assessments)
+  tmp[7,2]<-calcSatisfaction(satisfaction)
     
   
   
