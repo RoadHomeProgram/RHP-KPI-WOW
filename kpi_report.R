@@ -249,6 +249,73 @@ countReferrals<-function(referrals,patients) {
   return(table6)
 }
 
+
+#	Average Time in Days to Treatment
+overallStart<-function(data){
+  startData<-data %>%
+    filter(PATIENT_ID_NUM %in% vets_with_treatment$PATIENT_ID_NUM,
+           as.character(PATIENT_ID_NUM) %in% vetOnly) %>%
+    group_by(PATIENT_ID_NUM) %>%
+    slice_min(START_DATE,n=1,with_ties = F) %>%
+    select(START_DATE,PATIENT_ID_NUM)
+  #SERVICE_DATE >= quarters$startDates[5])
+  return(startData)
+}
+
+referralDates<-function(data) {
+  refSubset<-data %>%
+    mutate(EVENT_DATE = as.Date(EVENT_DATE,"%Y-%m-%d")) %>%
+    filter(DATA_VALUE_TYPE == "IN",
+           EVENT_DATE >= quarters$startDates[5]) %>%
+    group_by(PATIENT_ID_NUM) %>%
+    slice_max(EVENT_DATE,n=1,with_ties = F) %>%
+    select(PATIENT_ID_NUM,EVENT_DATE)
+  return(refSubset)
+  #filter DATA_VALUE_CODE=="WWP"
+  #DATA_VALUE_CODE!="WWP",
+}
+
+
+summariseDaysToEvent<-function(refDates,startDates){
+  compare_dates=inner_join(startDates,refDates,by=c("PATIENT_ID_NUM")) %>%
+    mutate(timedelta=difftime(START_DATE,EVENT_DATE,units="days")) %>%
+    filter(timedelta>0)
+  
+  result<-compare_dates %>%
+    ungroup() %>%
+    summarise(overall_N=n(),
+              total_days=sum(timedelta),
+              avg_days=mean(timedelta),
+              median_days=median(timedelta),
+              min_days=min(timedelta),
+              max_days=max(timedelta))
+  return(result)
+}
+
+
+genDaysUntilTables<-function(visits,referrals,patients) {
+  iopStartDates<-visits %>% filter(SERVICE_LINE=='IOP',IOP_START_DATE >= quarters$startDates[5])  %>% rename(START_DATE='IOP_START_DATE') %>% overallStart()
+  firstVisitDates<-visits %>% filter(SERVICE_DATE >= quarters$startDates[5]) %>% rename(START_DATE='SERVICE_DATE') %>% overallStart()
+  acceptanceDates
+  #all individuals
+  refs<-referrals %>% referralDates()
+  table7<-summariseDaysToEvent(refs,iopStartDates)
+  table10<-summariseDaysToEvent(refs,firstVisitDates)
+  
+  #all WWP referred individuals
+  refs<-referrals %>% filter(DATA_VALUE_CODE=="WWP") %>% referralDates()
+  table8<-summariseDaysToEvent(refs,iopStartDates)
+  table11<-summariseDaysToEvent(refs,firstVisitDates)
+  
+  #all nonWWP referred individuals
+  refs<-referrals %>% filter(DATA_VALUE_CODE!="WWP") %>% referralDates()
+  table9<-summariseDaysToEvent(refs,iopStartDates)
+  table12<-summariseDaysToEvent(refs,firstVisitDates)
+  
+  return(list(table7,table8,table9,table10,table11,table12))
+}
+
+
 generateKPIreport<-function(in.dir,masterListFile,out.dir,cutoffDate=today) {
   #this chuck just reads in the current
   #in.dir<-'/Users/ryanschubert/Dropbox (Rush)/WCN Data/processedData/dashboardData/Cross site data/'
@@ -273,6 +340,8 @@ generateKPIreport<-function(in.dir,masterListFile,out.dir,cutoffDate=today) {
   tables2_3_4_5<-generateTables2_3_4_5(patients,visits)
   
   table6<-countReferrals(referrals,patients)
+  
+  tables7_8_9_10_11_12<-genDaysUntilTables(visits,referrals,patients)
 }
 
 
