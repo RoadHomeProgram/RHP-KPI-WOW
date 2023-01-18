@@ -21,7 +21,7 @@ assessmentTermEnd<-function(metric){
 }
 
 #this function returns a dataset containing patients with an endpoint assessment for a given metric in the current fiscal year
-inFiscalYear<-function(data,metric) {
+inFiscalYear<-function(data,metric,cutoff=today) {
   data<-data %>%
     mutate(inFiscalYear=ASSESSMENT_DATE> determineFYStart(cutoff))
   inYear<-data %>%
@@ -63,7 +63,7 @@ calcOutcomes<-function(data,metric,threshold,cutoff=today){
     group_by(PATIENT_ID_NUM,ASSESSMENT_TERM) %>%
     slice_max(ASSESSMENT_DATE,n=1,with_ties = F) %>%
     ungroup() %>%
-    inFiscalYear(metric=metric)
+    inFiscalYear(metric=metric,cutoff=cutoff)
   sum_scores<-processedData %>% 
     select(contains("ASSESSMENT_RESPONSE_VALUE")) %>%
     apply(1,sum)
@@ -115,7 +115,7 @@ generateTable1<-function(assessments,cutoff=today){
 
 preprocessEngagement<-function(patients,visits) {
   patientType<-patients %>%
-    select(PATIENT_ID_NUM,PATIENT_TYPE)
+    select(PATIENT_ID_NUM,PATIENT_TYPE,ACCEPTED_FLAG,NOT_ACCEPTED_REASON)
 
   visits_quarterly_summary<-visits %>%
     mutate(SERVICE_DATE=as.Date(SERVICE_DATE,"%Y-%m-%d"),
@@ -194,10 +194,64 @@ generateTables2_3_4_5<-function(patients,visits) {
 }
 
 
-
+countReferrals<-function(referrals,patients) {
+  
+  referral_processed<-referrals %>% 
+    filter(DATA_VALUE_TYPE == "IN") %>%
+    rename(SERVICE_DATE='EVENT_DATE') %>%
+    mutate(SERVICE_DURATION=999) %>%
+    preprocessEngagement(patients=patients,visits=.) %>%
+    group_by(PATIENT_ID_NUM) %>%
+    slice_max(SERVICE_DATE,n=1) %>%
+    filter(SERVICE_DATE >= quarters$startDates[5],
+           DATA_VALUE_CODE == "WWP",
+           PATIENT_TYPE == "VET",
+           ACCEPTED_FLAG %in% c("N","NR","Y")) %>% 
+    select(-SERVICE_DURATION)
+  
+  ACCEPTANCE_TABLE<-table(referral_processed$quarter,referral_processed$ACCEPTED_FLAG) %>%
+    as.data.frame() %>%
+    pivot_wider(id_cols=Var1,names_from=Var2,values_from=Freq) %>%
+    mutate(Total = N + NR + Y,
+           Pending = NR,
+           Pending_perc = Pending/Total*100,
+           Resolved = N + Y,
+           Resolved_perc = Resolved/Total*100,
+           Accepted = Y,
+           Accepted_perc = Accepted/Resolved*100) %>%
+    rename(quarter=Var1)
+  
+  NOT_ACCEPTED_by_AMC<-referral_processed %>%
+    filter(ACCEPTED_FLAG == "N",
+           !(NOT_ACCEPTED_REASON %in% c("LOS","CON","TRA"))) %>%
+    group_by(quarter) %>%
+    summarise(NA_by_AMC=n())
+  
+  NOT_ACCEPTED_by_Patient<-referral_processed %>%
+    filter(ACCEPTED_FLAG == "N",
+           (NOT_ACCEPTED_REASON %in% c("CON","TRA"))) %>%
+    group_by(quarter) %>%
+    summarise(NA_by_patient=n())
+  
+  NOT_ACCEPTED_LOS<-referral_processed %>%
+    filter(ACCEPTED_FLAG == "N",
+           NOT_ACCEPTED_REASON == "LOS") %>%
+    group_by(quarter) %>%
+    summarise(NA_by_LOS=n())
+  
+  table6<-full_join(ACCEPTANCE_TABLE,NOT_ACCEPTED_by_AMC,by=c("quarter")) %>%
+    full_join(NOT_ACCEPTED_by_Patient,by=c("quarter")) %>%
+    full_join(NOT_ACCEPTED_LOS,by=c("quarter")) %>%
+    mutate(NA_by_AMC_perc=NA_by_AMC/(Y+N)*100,
+           NA_by_patient_perc=NA_by_patient/(Y+N)*100,
+           NA_by_LOS_perc=NA_by_LOS/(Y+N)*100)
+  table6<-table6 %>% select(-one_of(c("Y","N","NR")))
+  return(table6)
+}
 
 generateKPIreport<-function(in.dir,masterListFile,out.dir,cutoffDate=today) {
   #this chuck just reads in the current
+  #in.dir<-'/Users/ryanschubert/Dropbox (Rush)/WCN Data/processedData/dashboardData/Cross site data/'
   assessments<-fread(in.dir %&% "assessment_2023-01-17.csv",na=c("99","999","NA",""))
   patients<-fread(in.dir %&% "patient_2023-01-17.csv",na=c("99","999","NA",""))
   visits<-fread(in.dir %&% "visit_2023-01-17.csv",na=c("99","999","NA",""))
@@ -213,11 +267,12 @@ generateKPIreport<-function(in.dir,masterListFile,out.dir,cutoffDate=today) {
   fiscalYearStart<-determineFiscalYear(cutoffDate)
   quarters<-createQuarterTemplate(cutoffDate)
   
-  table1<-generateTable1(assessments)
+  table1<-generateTable1(assessments,cutoff=cutoffDate)
   table1[7,2]<-calcSatisfaction(satisfaction)
     
   tables2_3_4_5<-generateTables2_3_4_5(patients,visits)
   
+  table6<-countReferrals(referrals,patients)
 }
 
 
