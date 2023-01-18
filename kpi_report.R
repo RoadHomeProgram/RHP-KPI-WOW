@@ -296,23 +296,27 @@ summariseDaysToEvent<-function(refDates,startDates){
 genDaysUntilTables<-function(visits,referrals,patients) {
   iopStartDates<-visits %>% filter(SERVICE_LINE=='IOP',IOP_START_DATE >= quarters$startDates[5])  %>% rename(START_DATE='IOP_START_DATE') %>% overallStart()
   firstVisitDates<-visits %>% filter(SERVICE_DATE >= quarters$startDates[5]) %>% rename(START_DATE='SERVICE_DATE') %>% overallStart()
-  acceptanceDates
+  acceptanceDates<-patients %>% filter(ACCEPTED_DATE >= quarters$startDates[5],PATIENT_TYPE == "VET",ACCEPTED_FLAG=="Y") %>% rename(START_DATE='SERVICE_DATE') %>% overallStart()
+  
   #all individuals
   refs<-referrals %>% referralDates()
   table7<-summariseDaysToEvent(refs,iopStartDates)
   table10<-summariseDaysToEvent(refs,firstVisitDates)
+  table13<-summariseDaysToEvent(refs,acceptanceDates)
   
   #all WWP referred individuals
   refs<-referrals %>% filter(DATA_VALUE_CODE=="WWP") %>% referralDates()
   table8<-summariseDaysToEvent(refs,iopStartDates)
   table11<-summariseDaysToEvent(refs,firstVisitDates)
+  table14<-summariseDaysToEvent(refs,acceptanceDates)
   
   #all nonWWP referred individuals
   refs<-referrals %>% filter(DATA_VALUE_CODE!="WWP") %>% referralDates()
   table9<-summariseDaysToEvent(refs,iopStartDates)
   table12<-summariseDaysToEvent(refs,firstVisitDates)
+  table15<-summariseDaysToEvent(refs,acceptanceDates)
   
-  return(list(table7,table8,table9,table10,table11,table12))
+  return(list(table7,table8,table9,table10,table11,table12,table13,table14,table15))
 }
 
 
