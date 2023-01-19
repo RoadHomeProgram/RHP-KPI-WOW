@@ -39,23 +39,34 @@ inFiscalYear<-function(data,metric,cutoff=today) {
 
 
 #this function returns a dataset with veterans who have at least one treatment according to the master list of therapies
-withTreatment<-function(data,services=master_list_services) {
-  vets_with_treatment<-data %>%
+getWithTreatmentRecordIDs<-function(data,services=master_list_services) {
+  withTreatment<-data %>%
     filter(SERVICE_PERFORMED %in% master_list_services$TreatmentID) %>%
     select(PATIENT_ID_NUM) %>%
     arrange() %>%
     distinct() %>%
     unlist() %>%
     unname()
-  return(vets_with_treatment)
+  return(withTreatment)
 }
 
+getVetRecordIDs<-function(patients){
+  veterans<-patients %>%
+    filter(PATIENT_TYPE == "VET")  %>%
+    mutate(PATIENT_ID_NUM=as.character(PATIENT_ID_NUM)) %>%
+    select(PATIENT_ID_NUM) %>%
+    arrange() %>%
+    distinct() %>%
+    unlist() %>%
+    unname()
+  return(veterans)
+}
 #this function processes the assessments to calculate the percentage of individuals meeting some change sore threshold on a given metric in the current fiscal year
 calcOutcomes<-function(data,metric,threshold,cutoff=today){
   processedData<-data %>%
     filter(grepl(metric,ASSESSMENT_TYPE,ignore.case=T),
     ASSESSMENT_TERM == assessmentTermEnd(metric) | ASSESSMENT_TERM == 0,
-    PATIENT_ID_NUM %in% vets_with_treatment) 
+    PATIENT_ID_NUM %in% withTreatment) 
   removeEmpty<-!emptyColumns(processedData)
   processedData<-processedData[,..removeEmpty]
   processedData<-processedData %>%
@@ -91,7 +102,7 @@ calcSatisfaction<-function(satisfaction) {
   return(res)
 }
 
-generateTable1<-function(assessments,cutoff=today){
+createTable1<-function(assessments,cutoff=today){
   questions<-c(
     "% of participants that reduce their PCL score by 5 points or more",
     "% of participants that reduce their PCL score by 10 points or more",
@@ -151,18 +162,18 @@ medianHours<-function(data,quarterly=FALSE) {
         if(quarterly) {
             data<-data %>%
               group_by(quarter,SERVICE_LINE,PATIENT_TYPE) %>%
-                summarise(median_hours=median(total_hours),
+              summarise(median_hours=median(total_hours),
                         median_visits=median(Total_visits))
         } else {
             data<-data %>%
               group_by(SERVICE_LINE,PATIENT_TYPE) %>%
-                summarise(median_hours=median(total_hours),
+              summarise(median_hours=median(total_hours),
                         median_visits=median(Total_visits))
         }
     return(data)
 }
 
-generateTables2_3_4_5<-function(patients,visits) {
+createTables2_3_4_5<-function(patients,visits) {
 
     preprocessedEngagement<-preprocessEngagement(patients,visits)
 
@@ -253,8 +264,8 @@ countReferrals<-function(referrals,patients) {
 #	Average Time in Days to Treatment
 overallStart<-function(data){
   startData<-data %>%
-    filter(PATIENT_ID_NUM %in% vets_with_treatment$PATIENT_ID_NUM,
-           as.character(PATIENT_ID_NUM) %in% vetOnly) %>%
+    filter(PATIENT_ID_NUM %in% withTreatment,
+           as.character(PATIENT_ID_NUM) %in% veterans) %>%
     group_by(PATIENT_ID_NUM) %>%
     slice_min(START_DATE,n=1,with_ties = F) %>%
     select(START_DATE,PATIENT_ID_NUM)
@@ -293,10 +304,10 @@ summariseDaysToEvent<-function(refDates,startDates){
 }
 
 
-genDaysUntilTables<-function(visits,referrals,patients) {
+createDaysUntilTables<-function(visits,referrals,patients) {
   iopStartDates<-visits %>% filter(SERVICE_LINE=='IOP',IOP_START_DATE >= quarters$startDates[5])  %>% rename(START_DATE='IOP_START_DATE') %>% overallStart()
   firstVisitDates<-visits %>% filter(SERVICE_DATE >= quarters$startDates[5]) %>% rename(START_DATE='SERVICE_DATE') %>% overallStart()
-  acceptanceDates<-patients %>% filter(ACCEPTED_DATE >= quarters$startDates[5],PATIENT_TYPE == "VET",ACCEPTED_FLAG=="Y") %>% rename(START_DATE='SERVICE_DATE') %>% overallStart()
+  acceptanceDates<-patients %>% filter(ACCEPTED_DATE >= quarters$startDates[5],PATIENT_TYPE == "VET",ACCEPTED_FLAG=="Y") %>% rename(START_DATE='ACCEPTED_DATE') %>% overallStart()
   
   #all individuals
   refs<-referrals %>% referralDates()
@@ -320,7 +331,7 @@ genDaysUntilTables<-function(visits,referrals,patients) {
 }
 
 
-generateKPIreport<-function(in.dir,masterListFile,out.dir,cutoffDate=today) {
+createKPIreport<-function(in.dir,masterListFile,out.dir,cutoffDate=today) {
   #this chuck just reads in the current
   #in.dir<-'/Users/ryanschubert/Dropbox (Rush)/WCN Data/processedData/dashboardData/Cross site data/'
   assessments<-fread(in.dir %&% "assessment_2023-01-17.csv",na=c("99","999","NA",""))
@@ -334,18 +345,19 @@ generateKPIreport<-function(in.dir,masterListFile,out.dir,cutoffDate=today) {
     separate(`Master List of Therapies and Services (# = CDS value)`,into=c("TreatmentID"),sep=" ") %>% 
     mutate(TreatmentID=as.integer(TreatmentID))
   
-  vets_with_treatment<-withTreatment(visits)
+  withTreatment<-getWithTreatmentRecordIDs(visits)
+  veterans<-getVetRecordIDs(patients)
   fiscalYearStart<-determineFiscalYear(cutoffDate)
   quarters<-createQuarterTemplate(cutoffDate)
   
-  table1<-generateTable1(assessments,cutoff=cutoffDate)
+  table1<-createTable1(assessments,cutoff=cutoffDate)
   table1[7,2]<-calcSatisfaction(satisfaction)
     
-  tables2_3_4_5<-generateTables2_3_4_5(patients,visits)
+  tables2_3_4_5<-createTables2_3_4_5(patients,visits)
   
   table6<-countReferrals(referrals,patients)
   
-  tables7_8_9_10_11_12<-genDaysUntilTables(visits,referrals,patients)
+  tables7To15<-createDaysUntilTables(visits,referrals,patients)
 }
 
 
