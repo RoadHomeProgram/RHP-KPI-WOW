@@ -330,6 +330,64 @@ createDaysUntilTables<-function(visits,referrals,patients) {
   return(list(table7,table8,table9,table10,table11,table12,table13,table14,table15))
 }
 
+patientsInFiscalYear<-function(visits) {
+  patients<-visits %>%
+    mutate(SERVICE_DATE = as.Date(SERVICE_DATE,"%Y-%m-%d")) %>%
+    filter(SERVICE_DATE >= quarters$startDates[5]) %>%
+    select(PATIENT_ID_NUM) %>%
+    arrange() %>%
+    distinct() %>%
+    unlist() %>%
+    unname()
+  return(patients)
+}
+
+
+#Grabs the unique list of patients that visited in the last year
+#grabs the most recent visit for each patient in each service line
+#any patients with more than one record after this gets relabeled as BOTH
+#refilter to most recent patient in each service group including BOTH
+#finally join with patients df and tabulate the results
+tabulateVisits<-function(visits,patients) {
+  past12MonthVisits<-visits %>%
+      mutate(SERVICE_DATE = as.Date(SERVICE_DATE,"%Y-%m-%d")) %>%
+      filter(SERVICE_DATE >= quarters$startDates[5])
+  #group by IOP and patient id then slice max by date
+  patient_count<-past12MonthVisits %>%
+    group_by(PATIENT_ID_NUM,SERVICE_LINE) %>%
+    slice_max(SERVICE_DATE,n=1,with_ties = F) %>%
+    select(PATIENT_ID_NUM) %>%
+    ungroup() %>%
+    group_by(PATIENT_ID_NUM) %>%
+    summarise(count=n())  %>%
+    ungroup()
+  
+  past12MonthVisits<-inner_join(past12MonthVisits,patient_count,by=c("PATIENT_ID_NUM")) 
+  summarise_visits<-past12MonthVisits %>% 
+    mutate(group=if_else(count==2,"BOTH",SERVICE_LINE)) %>%
+    group_by(PATIENT_ID_NUM) %>%
+    slice_max(SERVICE_DATE,with_ties = FALSE) %>%
+    inner_join(patients,by=c("PATIENT_ID_NUM"))
+
+  table17<-table(summarise_visits$group,summarise_visits$PATIENT_TYPE) %>% as.data.frame()
+
+  return(table17)
+}
+
+
+generateTables16_17<-function(visits,patients) {
+  patientIDs<-patientsInFiscalYear(visits)
+
+  table16<-patients %>%
+    filter(PATIENT_ID_NUM %in% patientIDs) %>%
+    group_by(PATIENT_TYPE) %>%
+    summarise(PatientCount=n())
+
+  table17<-tabulateVisits(visits,patients)
+
+  return(list(table16,table17))
+}
+
 
 createKPIreport<-function(in.dir,masterListFile,out.dir,cutoffDate=today) {
   #this chuck just reads in the current
@@ -358,6 +416,8 @@ createKPIreport<-function(in.dir,masterListFile,out.dir,cutoffDate=today) {
   table6<-countReferrals(referrals,patients)
   
   tables7To15<-createDaysUntilTables(visits,referrals,patients)
+
+  tables16_17<-generateTables16_17(visits,patients)
 }
 
 
