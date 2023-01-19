@@ -418,6 +418,25 @@ createKPIreport<-function(in.dir,masterListFile,out.dir,cutoffDate=today) {
   tables7To15<-createDaysUntilTables(visits,referrals,patients)
 
   tables16_17<-generateTables16_17(visits,patients)
+  
+  outputList<-list(
+    overall_outcomes=table1,
+    visit_count_quarterly=tables2_3_4_5[[1]],
+    hours_total=tables2_3_4_5[[2]],
+    hours_quarterly=tables2_3_4_5[[3]],
+    referrals=table6,
+    DTT_Overall_IOP=tables7To15[[1]],
+    DTT_WWPReferred_IOP=tables7To15[[2]],
+    DTT_Non_WWPReferred_IOP=tables7To15[[3]],
+    DTFV_Overall=tables7To15[[4]],
+    DTFV_WWPReferred=tables7To15[[5]],
+    DTFV_Non_WWPReferred=tables7To15[[6]],
+    DTA_Overall=tables7To15[[7]],
+    DTA_WWPReferred=tables7To15[[8]],
+    DTA_Non_WWPReferred=tables7To15[[9]],
+    unique_patients=tables16_17[[1]],
+    unique_patients_by_program=tables16_17[[2]])
+  write_xlsx(outputList,out.dir %&% 'KPI_crosssite_report_' %&% cutoffDate %&% '.xlsx')
 }
 
 
