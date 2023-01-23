@@ -115,7 +115,7 @@ mergeWCNData<-function(MGH.dir,UCLA.dir,RUSH.dir,EMORY.dir,out.dir,ignore.missin
   #next we want to just stack the matching files together
   tmp<-lapply(prefixesVec,readin,directoriesVec)
   #add the MCS and PCS to the assessments
-  tmp[[i]]<-scoreVR12(test.out.dir,tmp[[i]])
+  tmp[[1]]<-scoreVR12(out.dir,tmp[[1]])
   names(tmp)<-gsub('^','',prefixesVec,fixed=T)
   for (i in 1:length(tmp)){
     targetOut<-out.dir %&% names(tmp)[i] %&% "_" %&% Sys.Date() %&% ".csv"
