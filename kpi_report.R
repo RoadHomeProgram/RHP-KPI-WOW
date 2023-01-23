@@ -67,6 +67,10 @@ calcOutcomes<-function(data,metric,threshold,cutoff=today,withTreatment){
     filter(grepl(metric,ASSESSMENT_TYPE,ignore.case=T),
     ASSESSMENT_TERM == assessmentTermEnd(metric) | ASSESSMENT_TERM == 0,
     PATIENT_ID_NUM %in% withTreatment) 
+  if(metric == 'PCL'){
+    processedData<-processedData %>%
+      filter(!(ASSESSMENT_TYPE == 'PCL5' & ASSESSMENT_TERM == 1))
+  }
   removeEmpty<-!emptyColumns(processedData)
   processedData<-processedData[,..removeEmpty]
   processedData<-processedData %>%
@@ -408,6 +412,7 @@ generateKPIreport<-function(in.dir,masterListFile,out.dir,cutoffDate=today) {
   veterans<-getVetRecordIDs(patients)
   fiscalYearStart<-determineFiscalYear(cutoffDate)
   quarters<-createQuarterTemplate(cutoffDate)
+
   
   table1<-createTable1(assessments,cutoff=cutoffDate,withTreatment)
   table1[7,2]<-calcSatisfaction(satisfaction,quarters)

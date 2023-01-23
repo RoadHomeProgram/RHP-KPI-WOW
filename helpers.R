@@ -46,7 +46,7 @@ determineQuarterStart<-function(date){
 createQuarterTemplate<-function(date) {
   template<-data.frame(startDates=rep(NA,5),
                        quarter=rep(NA,5))
-  iterDate<-today
+  iterDate<-date
   for(i in 1:5) {
     template$startDates[i]<-determineQuarterStart(iterDate)
     iterDate<-iterDate %m-% months(3)
