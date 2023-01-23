@@ -1,11 +1,11 @@
 #load in necessary functions from other scripts we've written
 t1<-Sys.time()
-source.dir<-"/Users/ryanschubert/Dropbox (Rush)/Ryan's stuff/rush/remake KPI/prototype/"
+source.dir<-"/Users/ryanschubert/Documents/RHP-KPI-WOW/"
 "%&%" = function(a,b) paste0(a,b)
 source(source.dir %&% 'merge_datasets.R')
 source(source.dir %&% 'research_grade_dataset.R')
-source(source.dir %&% 'kpi_prototype_script_v2.R')
-source(source.dir %&% 'WOW_prototype_script.R')
+source(source.dir %&% 'kpi_report.R')
+# source(source.dir %&% 'WOW_prototype_script.R')
 
 
 #define some global variables we will need later
@@ -30,18 +30,19 @@ mergeWCNData(MGH.dir=MGH.dir,
 
 # list.files(crossSite.dir)
 #create a research grade dataset
-generateDataset(in.dir=crossSite.dir,
+generateDataset(assessments=crossSite.dir %&% "assessment_" %&% Sys.Date() %&% ".csv",
+                patients=crossSite.dir %&% "patient_" %&% Sys.Date() %&% ".csv",
                 out.dir=dataOut.dir)
 
 #generate the kpi report
 generateKPIreport(in.dir=crossSite.dir,
                   masterListFile=masterListPath,
-                  out.dir='/Users/ryanschubert/Dropbox (Rush)/WCN Data/reports/',
+                  out.dir='/Users/ryanschubert/Documents/RHP-KPI-WOW/test/',
                   cutoffDate=as.Date('2022-11-05'))
 
 #generate the wow report
-generateWOW(in.dir = crossSite.dir,
-            masterListFile=masterListPath,
-            out.dir='/Users/ryanschubert/Dropbox (Rush)/WCN Data/reports/',
-            cutoffDate=as.Date('2022-11-05'))
+# generateWOW(in.dir = crossSite.dir,
+#             masterListFile=masterListPath,
+#             out.dir='/Users/ryanschubert/Dropbox (Rush)/WCN Data/reports/',
+#             cutoffDate=as.Date('2022-11-05'))
 print(Sys.time()-t1)
