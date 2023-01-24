@@ -38,7 +38,7 @@ generateDataset(assessments=crossSite.dir %&% "assessment_" %&% Sys.Date() %&% "
 generateKPIreport(in.dir=crossSite.dir,
                   masterListFile=masterListPath,
                   out.dir='/Users/ryanschubert/Documents/RHP-KPI-WOW/test/',
-                  cutoffDate=as.Date('2022-01-09'))
+                  cutoffDate=as.Date('2022-11-23'))
 
 #generate the wow report
 # generateWOW(in.dir = crossSite.dir,
