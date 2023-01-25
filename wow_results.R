@@ -85,12 +85,12 @@ calcSatisfaction<-function(satisfaction){
   satisfactionRates[2,3]<-sum(table(filled_satisfaction$OVERALL_SATISFACTION)[names(table(filled_satisfaction$OVERALL_SATISFACTION)) == "A" | names(table(filled_satisfaction$OVERALL_SATISFACTION)) == "SA"])
   satisfactionRates[2,4]<-nrow(filled_satisfaction)
   
-  satisfactionRates[3,1]<-"The AMC program helped me overcome barriersor obstacles to seek the care I needed, whether at the AMC or somewhere else."
+  satisfactionRates[3,1]<-"The AMC program helped me overcome barriers or obstacles to seek the care I needed, whether at the AMC or somewhere else."
   satisfactionRates[3,2]<-sum((table(filled_satisfaction$OVERCOME_BARRIERS)/nrow(filled_satisfaction)*100)[names(table(filled_satisfaction$OVERCOME_BARRIERS)) == "A" | names(table(filled_satisfaction$OVERCOME_BARRIERS)) == "SA"])
   satisfactionRates[3,3]<-sum(table(filled_satisfaction$OVERCOME_BARRIERS)[names(table(filled_satisfaction$OVERCOME_BARRIERS)) == "A" | names(table(filled_satisfaction$OVERCOME_BARRIERS)) == "SA"])
   satisfactionRates[3,4]<-nrow(filled_satisfaction)
   
-  satisfactionRates[4,1]<-"Overall, I feel satisfied by the clinical care I received at the AMC."
+  satisfactionRates[4,1]<-"The care I received at AMC has improved the problems I needed help with."
   satisfactionRates[4,2]<-sum((table(filled_satisfaction$IMPROVED_PROBLEMS)/nrow(filled_satisfaction)*100)[names(table(filled_satisfaction$IMPROVED_PROBLEMS)) == "A" | names(table(filled_satisfaction$IMPROVED_PROBLEMS)) == "SA"])
   satisfactionRates[4,3]<-sum(table(filled_satisfaction$IMPROVED_PROBLEMS)[names(table(filled_satisfaction$IMPROVED_PROBLEMS)) == "A" | names(table(filled_satisfaction$IMPROVED_PROBLEMS)) == "SA"])
   satisfactionRates[4,4]<-nrow(filled_satisfaction)
@@ -226,10 +226,9 @@ plotOutcome<-function(input,metric) {
   plot<-input %>%
     ggplot(aes(x=timepoint,y=mean_score)) +
     geom_point() +
-    geom_text(aes(label=round(mean_score)),position=position_nudge(y=5),size=5) +
+    geom_text(aes(label=round(mean_score)),position=position_nudge(y=1),size=5) +
     geom_path(group =".") +
     theme_bw(20)  +
-    ylim(0,60) +
     ggtitle(metric %&% " (n=" %&% min(input$count) %&% ")") + 
     theme(plot.title = element_text(hjust = 0.5),
           axis.title.y = element_blank(),
@@ -284,7 +283,6 @@ generateWowResults<-function(in.dir,out.dir,cutoffDate) {
   phqPlot<-generateOutcomePlot(assessments,metric='PHQ')
   cdriscPlot<-generateOutcomePlot(assessments,metric='CDRISC')
   nsiPlot<-generateOutcomePlot(assessments,metric='NSI')
-  
   
   outputList<-list(satisfaction=satisfactionTable,
                    sessions=utilizationSummary[[1]],
