@@ -38,7 +38,7 @@ inFiscalYear<-function(data,metric,cutoff=today) {
 }
 
 
-#this function returns a dataset with veterans who have at least one treatment according to the master list of therapies
+#this function returns an array with veterans who have at least one treatment according to the master list of therapies
 getWithTreatmentRecordIDs<-function(data,services=master_list_services) {
   withTreatment<-data %>%
     filter(SERVICE_PERFORMED %in% services$TreatmentID) %>%
@@ -50,6 +50,7 @@ getWithTreatmentRecordIDs<-function(data,services=master_list_services) {
   return(withTreatment)
 }
 
+#this function returns an array with veteran IDs
 getVetRecordIDs<-function(patients){
   veterans<-patients %>%
     filter(PATIENT_TYPE == "VET")  %>%
@@ -69,7 +70,8 @@ calcOutcomes<-function(data,metric,threshold,cutoff=today,withTreatment){
     PATIENT_ID_NUM %in% withTreatment) 
   if(metric == 'PCL'){
     processedData<-processedData %>%
-      filter(!(ASSESSMENT_TYPE == 'PCL5' & ASSESSMENT_TERM == 1))
+      filter(!(ASSESSMENT_TYPE == 'PCL5' & ASSESSMENT_TERM == 1),
+             !(ASSESSMENT_TYPE == 'PCL5W' & ASSESSMENT_TERM == 0))
   }
   removeEmpty<-!emptyColumns(processedData)
   processedData<-processedData[,..removeEmpty]
@@ -90,13 +92,14 @@ calcOutcomes<-function(data,metric,threshold,cutoff=today,withTreatment){
                 values_from = sum_scores) %>%
     mutate(delta=`0`-`1`,
             meetsThreshold=delta>=threshold)
+  sanitized<-sanitized[complete.cases(sanitized),]
   res<-table(sanitized$meetsThreshold)/sum(table(sanitized$meetsThreshold)) * 100
   return(res[2])
 
 }
 
+#this function calculates the satisfation rate
 calcSatisfaction<-function(satisfaction,quarters) {
-  print(quarters)
   withResponse<-satisfaction %>%
     mutate(SURVEY_DATE=as.Date(SURVEY_DATE,"%Y-%m-%d")) %>%
     filter(!is.na(OVERALL_SATISFACTION),
@@ -107,6 +110,7 @@ calcSatisfaction<-function(satisfaction,quarters) {
   return(res)
 }
 
+#this function goes through each outcome and calculates the result
 createTable1<-function(assessments,cutoff=today,withTreatment){
   questions<-c(
     "% of participants that reduce their PCL score by 5 points or more",
