@@ -11,7 +11,7 @@ source("/Users/ryanschubert/Documents/RHP-KPI-WOW/helpers.R")
 
 
 ## 1. Warrior Care Network Participants
-plotWCNParticipants<-function(visits,patients){
+plotWCNParticipants<-function(visits,patients,masterListServices){
   
   visitCount<-visits %>%
     filter(SERVICE_DATE <= '2022-09-30') %>%
@@ -95,7 +95,7 @@ calcSatisfaction<-function(satisfaction){
 }
 
 ## 3. Service Utilization Summary
-calcServiceUtilization<-function(visits){
+calcServiceUtilization<-function(visits,cycleStart){
   sessionCounts<-visits %>%
     mutate(IOP_START_DATE=as.Date(IOP_START_DATE, format="%Y-%m-%d"),
     ) %>%
@@ -122,6 +122,7 @@ calcServiceUtilization<-function(visits){
   averageHours<-hourCounts %>%
     inner_join(participantCount,by=c("SERVICE_LINE")) %>%
     mutate(average_hours=total_hours/total_participants)
+  return(list(sessionCounts,hourCounts,averageHours))
 }
 
 ## 4. completion rate
@@ -176,9 +177,22 @@ calcCompletionRate<-function(patients,assessments,visits) {
 ## 5. warrior outcomes
 
 extractTimepoint<-function(data,metric,timepoint){
+  
+  
+  
   metricData<-data %>% 
+    mutate(ASSESSMENT_DATE=as.Date(ASSESSMENT_DATE, format="%Y-%m-%d")) %>%
+    filter(ASSESSMENT_TERM == 1 | ASSESSMENT_TERM == 0,
+           ASSESSMENT_TYPE %in% c("PCL5","PCL5W","CDRISC","NSI","PHQ9"),
+           SERVICE_LINE == "IOP") %>%
+    group_by(PATIENT_ID_NUM,ASSESSMENT_TYPE,ASSESSMENT_TERM) %>%
+    slice_max(ASSESSMENT_DATE,n=1,with_ties = F) %>%
+    pivot_wider(id_cols=PATIENT_ID_NUM,names_from=c(ASSESSMENT_TYPE,ASSESSMENT_TERM),values_from = starts_with("ASSESSMENT_RESPONSE_VALUE")) %>%
     select(PATIENT_ID_NUM,contains(metric))
-  metricDataata<-metricDataata[complete.cases(metricDataata),]
+
+  empty_cols<-apply(metricData,2,function(x){sum(is.na(x))})
+  metricData<-metricData[,empty_cols != nrow(metricData)]
+  metricData<-metricData[complete.cases(metricData),]
   
   timepointData<-metricData %>% 
     select(PATIENT_ID_NUM, contains("_" %&% timepoint))  %>%
@@ -233,7 +247,7 @@ generateOutcomePlot<-function(data,metric){
 }
 
 
-generateWowResults<-function() {
+generateWowResults<-function(in.dir,out.dir,cutoffDate) {
   assessments<-fread(in.dir %&% "assessment_2023-01-17.csv",na=c("99","999","NA",""))
   patients<-fread(in.dir %&% "patient_2023-01-17.csv",na=c("99","999","NA",""))
   visits<-fread(in.dir %&% "visit_2023-01-17.csv",na=c("99","999","NA",""))
@@ -245,21 +259,37 @@ generateWowResults<-function() {
     separate(`Master List of Therapies and Services (# = CDS value)`,into=c("TreatmentID"),sep=" ") %>% 
     mutate(TreatmentID=as.integer(TreatmentID))
   
+  cycleStart<-as.Date(format(as.Date(format(cutoffDate, "%Y-%m-01")) -1,"%Y-%m-01"))
+  
   ## 1. Warrior Care Network Participants
-  barPlot<-plotWCNParticipants(visits,patients)
+  barPlot<-plotWCNParticipants(visits,patients,master_list_services)
   
   ## 2. Satisfaction Results All time
   satisfactionTable<-calcSatisfaction(satisfaction)
   
   ## 3. Service Utilization Summary
-  calcServiceUtilization(visits)
+  utilizationSummary<-calcServiceUtilization(visits,cycleStart)
   
   ## 4. completion rate
-  calcCompletionRate(patients,assessments,visits)
+  completionRate<-calcCompletionRate(patients,assessments,visits)
   
   ## 5. warrior outcomes
-  pclPlot<-generateOutcomePlot(metric='PCL')
-  phqPlot<-generateOutcomePlot(metric='PHQ')
-  cdriscPlot<-generateOutcomePlot(metric='CDRISC')
-  nsiPlot<-generateOutcomePlot(metric='NSI')
+  pclPlot<-generateOutcomePlot(assessments,metric='PCL')
+  phqPlot<-generateOutcomePlot(assessments,metric='PHQ')
+  cdriscPlot<-generateOutcomePlot(assessments,metric='CDRISC')
+  nsiPlot<-generateOutcomePlot(assessments,metric='NSI')
+  
+  
+  outputList<-list(satisfaction=satisfactionTable,
+                   sessions=utilizationSummary[[1]],
+                   hours=utilizationSummary[[2]],
+                   average_hours=utilizationSummary[[3]],
+                   completion=as.data.frame(completionRate))
+  
+  write_xlsx(outputList,out.dir %&% 'WOW_crosssite_report_' %&% cutoffDate %&% '.xlsx')
+  ggsave(out.dir %&% 'iop_counts_bar_' %&% cutoffDate %&% '.png',plot=barPlot)
+  ggsave(out.dir %&% 'pcl_plot_' %&% cutoffDate %&% '.png',plot=pclPlot)
+  ggsave(out.dir %&% 'cdrisc_plot_' %&% cutoffDate %&% '.png',plot=cdriscPlot)
+  ggsave(out.dir %&% 'phq_plot_' %&% cutoffDate %&% '.png',plot=phqPlot)
+  ggsave(out.dir %&% 'nsi_plot_' %&% cutoffDate %&% '.png',plot=nsiPlot)
 }
