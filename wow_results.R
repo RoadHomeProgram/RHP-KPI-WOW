@@ -183,6 +183,8 @@ extractTimepoint<-function(data,metric,timepoint){
   metricData<-data %>% 
     mutate(ASSESSMENT_DATE=as.Date(ASSESSMENT_DATE, format="%Y-%m-%d")) %>%
     filter(ASSESSMENT_TERM == 1 | ASSESSMENT_TERM == 0,
+           !(ASSESSMENT_TERM == 1 & ASSESSMENT_TYPE == 'PCL5'),
+           !(ASSESSMENT_TERM == 0 & ASSESSMENT_TYPE == 'PCL5W'),
            ASSESSMENT_TYPE %in% c("PCL5","PCL5W","CDRISC","NSI","PHQ9"),
            SERVICE_LINE == "IOP") %>%
     group_by(PATIENT_ID_NUM,ASSESSMENT_TYPE,ASSESSMENT_TERM) %>%
@@ -248,11 +250,11 @@ generateOutcomePlot<-function(data,metric){
 
 
 generateWowResults<-function(in.dir,out.dir,cutoffDate) {
-  assessments<-fread(in.dir %&% "assessment_2023-01-17.csv",na=c("99","999","NA",""))
-  patients<-fread(in.dir %&% "patient_2023-01-17.csv",na=c("99","999","NA",""))
-  visits<-fread(in.dir %&% "visit_2023-01-17.csv",na=c("99","999","NA",""))
-  referrals<-fread(in.dir %&% "referral_2023-01-17.csv",na=c("99","999","NA",""))
-  satisfaction<-fread(in.dir %&% "satisfaction_2023-01-17.csv",na=c("99","999","NA",""))
+  assessments<-fread(in.dir %&% "assessment_2023-01-23.csv",na=c("99","999","NA",""))
+  patients<-fread(in.dir %&% "patient_2023-01-23.csv",na=c("99","999","NA",""))
+  visits<-fread(in.dir %&% "visit_2023-01-23.csv",na=c("99","999","NA",""))
+  referrals<-fread(in.dir %&% "referral_2023-01-23.csv",na=c("99","999","NA",""))
+  satisfaction<-fread(in.dir %&% "satisfaction_2023-01-23.csv",na=c("99","999","NA",""))
   master_list_services<-fread("/Users/ryanschubert/Dropbox (Rush)/Ryan's stuff/rush/remake KPI/Master List of therapies.csv",na=c("")) %>%
     filter(!is.na(`Treatment*`)) %>%
     rename(Treatment="Treatment*") %>%
