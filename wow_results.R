@@ -42,13 +42,17 @@ plotWCNParticipants<-function(visits,patients,masterListServices){
     mutate(SERVICE_LINE = if_else((PATIENT_ID_NUM %in% multiHistorical & SERVICE_DATE <= '2022-09-30') | 
                                     (PATIENT_ID_NUM %in% multiFY2023 & SERVICE_DATE > '2022-09-30') ,
                                   'OP/IOP',
-                                  SERVICE_LINE)) %>%
+                                  SERVICE_LINE),
+           colorGroup='breakdown') %>%
     select(-SERVICE_DATE) %>%
     arrange() %>%
     distinct()
   
+  annotatedVisits<-annotatedVisits %>% mutate(SERVICE_LINE='Total',colorGroup='Total') %>%
+    rbind.data.frame(annotatedVisits)
+  
   pBar<-ggplot(annotatedVisits,aes(x=SERVICE_LINE)) + 
-    geom_bar() +
+    geom_bar(aes(fill=colorGroup)) +
     facet_wrap(~FY,scales="free") +
     geom_text(stat='count', aes(label=..count..), vjust=1.5) +
     theme_bw() +
@@ -255,7 +259,7 @@ generateWowResults<-function(in.dir,out.dir,cutoffDate) {
   visits<-fread(in.dir %&% "visit_2023-01-23.csv",na=c("99","999","NA",""))
   referrals<-fread(in.dir %&% "referral_2023-01-23.csv",na=c("99","999","NA",""))
   satisfaction<-fread(in.dir %&% "satisfaction_2023-01-23.csv",na=c("99","999","NA",""))
-  master_list_services<-fread("/Users/ryanschubert/Dropbox (Rush)/Ryan's stuff/rush/remake KPI/Master List of therapies.csv",na=c("")) %>%
+  masterListServices<-fread("/Users/ryanschubert/Dropbox (Rush)/Ryan's stuff/rush/remake KPI/Master List of therapies.csv",na=c("")) %>%
     filter(!is.na(`Treatment*`)) %>%
     rename(Treatment="Treatment*") %>%
     separate(`Master List of Therapies and Services (# = CDS value)`,into=c("TreatmentID"),sep=" ") %>% 
@@ -264,7 +268,7 @@ generateWowResults<-function(in.dir,out.dir,cutoffDate) {
   cycleStart<-as.Date(format(as.Date(format(cutoffDate, "%Y-%m-01")) -1,"%Y-%m-01"))
   
   ## 1. Warrior Care Network Participants
-  barPlot<-plotWCNParticipants(visits,patients,master_list_services)
+  barPlot<-plotWCNParticipants(visits,patients,masterListServices)
   
   ## 2. Satisfaction Results All time
   satisfactionTable<-calcSatisfaction(satisfaction)

@@ -5,7 +5,7 @@ source.dir<-"/Users/ryanschubert/Documents/RHP-KPI-WOW/"
 source(source.dir %&% 'merge_datasets.R')
 source(source.dir %&% 'research_grade_dataset.R')
 source(source.dir %&% 'kpi_report.R')
-# source(source.dir %&% 'WOW_prototype_script.R')
+source(source.dir %&% 'wow_results.R')
 
 
 #define some global variables we will need later
@@ -41,8 +41,7 @@ generateKPIreport(in.dir=crossSite.dir,
                   cutoffDate=as.Date('2022-11-23'))
 
 #generate the wow report
-# generateWOW(in.dir = crossSite.dir,
-#             masterListFile=masterListPath,
-#             out.dir='/Users/ryanschubert/Dropbox (Rush)/WCN Data/reports/',
-#             cutoffDate=as.Date('2022-11-05'))
+generateWowResults(in.dir = crossSite.dir,
+            out.dir='/Users/ryanschubert/Documents/RHP-KPI-WOW/test/',
+            cutoffDate=as.Date('2022-11-23'))
 print(Sys.time()-t1)
