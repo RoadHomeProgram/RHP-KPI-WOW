@@ -123,5 +123,5 @@ mergeWCNData<-function(MGH.dir,UCLA.dir,RUSH.dir,EMORY.dir,out.dir,ignore.missin
     sanitizedOut<-tmp[[i]][!dups,]
     fwrite(sanitizedOut,targetOut)
   }
-  return(tmp)
+  
 }

@@ -62,14 +62,13 @@ plotWCNParticipants<-function(visits,patients,masterListServices){
 }
 
 ## 2. Satisfaction Results All time
-calcSatisfaction<-function(satisfaction){
+calcSatisfactionRates<-function(satisfaction){
   filled_satisfaction<-satisfaction %>%
     filter(SERVICE_LINE == "IOP",
            !is.na(RECOMMEND_PROGRAM) &
              !is.na(OVERALL_SATISFACTION) &
              !is.na(OVERCOME_BARRIERS) &
              !is.na(IMPROVED_PROBLEMS))
-  #sum(table(filled_satisfaction$SURVEY_ID_NUM)> 1)
   
   satisfactionRates<-data.frame(matrix(NA,nrow=4,ncol=4))
   colnames(satisfactionRates)<-c("Question","Survey Percentage","Agree/Strongly Agree","Total Surveys")
@@ -270,7 +269,7 @@ generateWowResults<-function(in.dir,out.dir,cutoffDate) {
   barPlot<-plotWCNParticipants(visits,patients,masterListServices)
   
   ## 2. Satisfaction Results All time
-  satisfactionTable<-calcSatisfaction(satisfaction)
+  satisfactionTable<-calcSatisfactionRates(satisfaction)
   
   ## 3. Service Utilization Summary
   utilizationSummary<-calcServiceUtilization(visits,cycleStart)
