@@ -37,11 +37,11 @@ generateDataset(assessments=crossSite.dir %&% "assessment_" %&% Sys.Date() %&% "
 #generate the kpi report
 generateKPIreport(in.dir=crossSite.dir,
                   masterListFile=masterListPath,
-                  out.dir='/Users/ryanschubert/Documents/RHP-KPI-WOW/test/',
+                  out.dir='/Users/ryanschubert/Dropbox (Rush)/WCN Data/reports/',
                   cutoffDate=today)
 
 #generate the wow report
 generateWowResults(in.dir = crossSite.dir,
-            out.dir='/Users/ryanschubert/Documents/RHP-KPI-WOW/test/',
+            out.dir='/Users/ryanschubert/Dropbox (Rush)/WCN Data/reports/',
             cutoffDate=today)
 print(Sys.time()-t1)
