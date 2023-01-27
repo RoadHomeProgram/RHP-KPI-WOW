@@ -7,10 +7,9 @@
 #returns true if exactly one file with the given prefix exists
 #returns false for any other default
 library(data.table)
-library(dplyr)
 library(tidyr)
 
-scoring.dir<-"/Users/ryanschubert/Dropbox (Rush)/WCN Data/processedData/dashboardData/VR12score/"
+scoring.dir<-"/Users/ryanschubert/Documents/RHP-KPI-WOW/"
 source(scoring.dir %&% "R ScoringVR12score_vrData.R")
 "%|%" = function(a,b) paste(a,b,sep="|")
 #
