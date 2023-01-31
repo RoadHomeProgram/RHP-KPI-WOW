@@ -4,8 +4,6 @@ library(tidyr)
 "%&%" = function(a,b) paste0(a,b)
 "%_%" = function(a,b) paste(a,b,sep='_')
 generateDataset<-function(assessments,patients,out.dir){
-  assessments<-fread(assessments,na=c("99","999"))
-  patients<-fread(patients,na=c("99","999"))
   
   longScores<-assessments %>%
       group_by(PATIENT_ID_NUM,ASSESSMENT_TERM,FACILITY_NAME,ASSESSMENT_TYPE,SERVICE_LINE) %>%

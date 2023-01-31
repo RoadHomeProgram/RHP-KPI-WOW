@@ -9,7 +9,7 @@
 library(data.table)
 library(tidyr)
 
-scoring.dir<-"/Users/ryanschubert/Documents/RHP-KPI-WOW/"
+scoring.dir<-"/Users/ryanschubert/Documents/RHP-KPI-WOW/VR12/"
 source(scoring.dir %&% "R ScoringVR12score_vrData.R")
 "%|%" = function(a,b) paste(a,b,sep="|")
 #

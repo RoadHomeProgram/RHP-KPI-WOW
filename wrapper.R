@@ -15,9 +15,7 @@ RUSH.dir<-"/Users/ryanschubert/Dropbox (Rush)/WCN Data/processedData/dashboardDa
 EMORY.dir<-"/Users/ryanschubert/Dropbox (Rush)/WCN Data/processedData/dashboardData/Emory/"
 crossSite.dir<-'/Users/ryanschubert/Dropbox (Rush)/WCN Data/processedData/dashboardData/Cross site data/'
 dataOut.dir<-'/Users/ryanschubert/Dropbox (Rush)/WCN Data/processedData/researchDataset/'
-masterListPath<-"/Users/ryanschubert/Dropbox (Rush)/Ryan's stuff/rush/remake KPI/Master List of therapies.csv"
 #0th step is preprocessing the data to remove formatting errors
-#harmonization happens in 00_harmonize_data
 
 
 #pool the data across sites - this is an intermediary dataset and not the research grade dataset
@@ -28,20 +26,40 @@ mergeWCNData(MGH.dir=MGH.dir,
              EMORY.dir=EMORY.dir,
              out.dir=crossSite.dir)
 
-# list.files(crossSite.dir)
+#grab the newly created datasets
+assessments<-fread(crossSite.dir %&% "assessment_" %&% today %&% '.csv',na=c("99","999","NA",""))
+patients<-fread(crossSite.dir %&% "patient_" %&% today %&% '.csv',na=c("99","999","NA",""))
+visits<-fread(crossSite.dir %&% "visit_" %&% today %&% '.csv',na=c("99","999","NA",""))
+referrals<-fread(crossSite.dir %&% "referral_" %&% today %&% '.csv',na=c("99","999","NA",""))
+satisfaction<-fread(crossSite.dir %&% "satisfaction_" %&% today %&% '.csv',na=c("99","999","NA",""))
+master_list_services<-fread("/Users/ryanschubert/Dropbox (Rush)/Ryan's stuff/rush/remake KPI/Master List of therapies.csv",na=c("")) %>%
+  filter(!is.na(`Treatment*`)) %>%
+  rename(Treatment="Treatment*") %>%
+  separate(`Master List of Therapies and Services (# = CDS value)`,into=c("TreatmentID"),sep=" ") %>% 
+  mutate(TreatmentID=as.integer(TreatmentID))
+
 #create a research grade dataset
-generateDataset(assessments=crossSite.dir %&% "assessment_" %&% Sys.Date() %&% ".csv",
-                patients=crossSite.dir %&% "patient_" %&% Sys.Date() %&% ".csv",
+generateDataset(assessments=assessments,
+                patients=patients,
                 out.dir=dataOut.dir)
 
 #generate the kpi report
-generateKPIreport(in.dir=crossSite.dir,
-                  masterListFile=masterListPath,
+generateKPIreport(assessments=assessments,
+                  patients=patients,
+                  visits=visits,
+                  referrals=referrals,
+                  satisfaction=satisfaction, 
+                  master_list_services=master_list_services,
                   out.dir='/Users/ryanschubert/Dropbox (Rush)/WCN Data/reports/',
                   cutoffDate=today)
 
 #generate the wow report
-generateWowResults(in.dir = crossSite.dir,
-            out.dir='/Users/ryanschubert/Dropbox (Rush)/WCN Data/reports/',
-            cutoffDate=today)
+generateWowResults(assessments=assessments,
+                   patients=patients,
+                   visits=visits,
+                   referrals=referrals,
+                   satisfaction=satisfaction, 
+                   masterListServices=master_list_services,
+                   out.dir='/Users/ryanschubert/Dropbox (Rush)/WCN Data/reports/',
+                   cutoffDate=today)
 print(Sys.time()-t1)

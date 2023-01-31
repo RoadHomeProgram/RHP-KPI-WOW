@@ -251,17 +251,9 @@ generateOutcomePlot<-function(data,metric){
 }
 
 
-generateWowResults<-function(in.dir,out.dir,cutoffDate) {
-  assessments<-fread(in.dir %&% "assessment_2023-01-23.csv",na=c("99","999","NA",""))
-  patients<-fread(in.dir %&% "patient_2023-01-23.csv",na=c("99","999","NA",""))
-  visits<-fread(in.dir %&% "visit_2023-01-23.csv",na=c("99","999","NA",""))
-  referrals<-fread(in.dir %&% "referral_2023-01-23.csv",na=c("99","999","NA",""))
-  satisfaction<-fread(in.dir %&% "satisfaction_2023-01-23.csv",na=c("99","999","NA",""))
-  masterListServices<-fread("/Users/ryanschubert/Dropbox (Rush)/Ryan's stuff/rush/remake KPI/Master List of therapies.csv",na=c("")) %>%
-    filter(!is.na(`Treatment*`)) %>%
-    rename(Treatment="Treatment*") %>%
-    separate(`Master List of Therapies and Services (# = CDS value)`,into=c("TreatmentID"),sep=" ") %>% 
-    mutate(TreatmentID=as.integer(TreatmentID))
+generateWowResults<-function(assessments,patients,visits,
+                             referrals,satisfaction,masterListServices,
+                             out.dir,cutoffDate) {
   
   cycleStart<-as.Date(format(as.Date(format(cutoffDate, "%Y-%m-01")) -1,"%Y-%m-01"))
   
