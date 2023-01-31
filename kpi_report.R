@@ -401,11 +401,11 @@ generateTables16_17<-function(visits,patients,quarters) {
 generateKPIreport<-function(in.dir,masterListFile,out.dir,cutoffDate=today) {
   #this chuck just reads in the current
   #in.dir<-'/Users/ryanschubert/Dropbox (Rush)/WCN Data/processedData/dashboardData/Cross site data/'
-  assessments<-fread(in.dir %&% "assessment_2023-01-17.csv",na=c("99","999","NA",""))
-  patients<-fread(in.dir %&% "patient_2023-01-17.csv",na=c("99","999","NA",""))
-  visits<-fread(in.dir %&% "visit_2023-01-17.csv",na=c("99","999","NA",""))
-  referrals<-fread(in.dir %&% "referral_2023-01-17.csv",na=c("99","999","NA",""))
-  satisfaction<-fread(in.dir %&% "satisfaction_2023-01-17.csv",na=c("99","999","NA",""))
+  assessments<-fread(in.dir %&% "assessment_data_202212.txt",na=c("99","999","NA",""))
+  patients<-fread(in.dir %&% "patient_data_202212.txt",na=c("99","999","NA",""))
+  visits<-fread(in.dir %&% "visit_data_202212.txt",na=c("99","999","NA",""))
+  referrals<-fread(in.dir %&% "referral_data_202212.txt",na=c("99","999","NA",""))
+  satisfaction<-fread(in.dir %&% "satisfaction_data_202212.txt",na=c("99","999","NA",""))
   master_list_services<-fread("/Users/ryanschubert/Dropbox (Rush)/Ryan's stuff/rush/remake KPI/Master List of therapies.csv",na=c("")) %>%
     filter(!is.na(`Treatment*`)) %>%
     rename(Treatment="Treatment*") %>%
