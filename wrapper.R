@@ -62,4 +62,32 @@ generateWowResults(assessments=assessments,
                    masterListServices=master_list_services,
                    out.dir='/Users/ryanschubert/Dropbox (Rush)/WCN Data/reports/',
                    cutoffDate=today)
+
+for (site in c("MGH","RUSH","UCLA")) {
+  assessmentsSubset<-assessments %>% filter(FACILITY_NAME==site)
+  patientsSubset<-patients %>% filter(FACILITY_NAME==site)
+  visitsSubset<-visits %>% filter(FACILITY_NAME==site)
+  referralsSubset<-referrals %>% filter(FACILITY_NAME==site)
+  satisfactionSubset<-satisfaction %>% filter(FACILITY_NAME==site)
+  #generate the kpi report
+  generateKPIreport(assessments=assessmentsSubset,
+                    patients=patientsSubset,
+                    visits=visitsSubset,
+                    referrals=referralsSubset,
+                    satisfaction=satisfactionSubset, 
+                    master_list_services=master_list_services,
+                    out.dir='/Users/ryanschubert/Dropbox (Rush)/WCN Data/reports/' %&% site %&% '_',
+                    cutoffDate=today)
+  
+  #generate the wow report
+  generateWowResults(assessments=assessmentsSubset,
+                     patients=patientsSubset,
+                     visits=visitsSubset,
+                     referrals=referralsSubset,
+                     satisfaction=satisfactionSubset, 
+                     masterListServices=master_list_services,
+                     out.dir='/Users/ryanschubert/Dropbox (Rush)/WCN Data/reports/' %&% site %&% '_',
+                     cutoffDate=today)
+}
+
 print(Sys.time()-t1)

@@ -13,7 +13,7 @@ source("/Users/ryanschubert/Documents/RHP-KPI-WOW/helpers.R")
 #returns the correct assessment end term
 #1 for all variables except for vr12 items
 assessmentTermEnd<-function(metric){
-  if (metric == 'VARAND') {
+  if (metric == 'VARAND' | metric == 'MCS' | metric == 'PCS') {
     return(9001)
   } else {
     return(1)
@@ -96,6 +96,13 @@ calcOutcomes<-function(data,metric,threshold,cutoff=today,withTreatment){
   res<-table(sanitized$meetsThreshold)/sum(table(sanitized$meetsThreshold)) * 100
   return(res[2])
 
+}
+
+#error handling needs to happen because some outcomes may not be calculable early on in the fiscal year
+#Some metrics only account for data that exists from the current fiscal year vs in the last rolling 12 months
+#
+calcOutcomesHandleErrors<-function(){
+  out<-try
 }
 
 #this function calculates the satisfation rate
