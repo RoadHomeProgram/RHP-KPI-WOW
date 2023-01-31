@@ -67,7 +67,12 @@ calcOutcomes<-function(data,metric,threshold,cutoff=today,withTreatment){
   processedData<-data %>%
     filter(grepl(metric,ASSESSMENT_TYPE,ignore.case=T),
     ASSESSMENT_TERM == assessmentTermEnd(metric) | ASSESSMENT_TERM == 0,
-    PATIENT_ID_NUM %in% withTreatment) 
+    PATIENT_ID_NUM %in% withTreatment) %>%
+    mutate(ASSESSMENT_POINT=case_when(
+      ASSESSMENT_TERM==0 ~ 'Baseline',
+      ASSESSMENT_TERM==assessmentTermEnd(metric) ~ 'Endpoint',
+      T ~ NA_character_
+    ))
   if(metric == 'PCL'){
     processedData<-processedData %>%
       filter(!(ASSESSMENT_TYPE == 'PCL5' & ASSESSMENT_TERM == 1),
@@ -77,7 +82,7 @@ calcOutcomes<-function(data,metric,threshold,cutoff=today,withTreatment){
   processedData<-processedData[,..removeEmpty]
   processedData<-processedData %>%
     mutate(ASSESSMENT_DATE=as.Date(ASSESSMENT_DATE, format="%m/%d/%Y")) %>%
-    group_by(PATIENT_ID_NUM,ASSESSMENT_TERM) %>%
+    group_by(PATIENT_ID_NUM,ASSESSMENT_POINT) %>%
     slice_max(ASSESSMENT_DATE,n=1,with_ties = F) %>%
     ungroup() %>%
     inFiscalYear(metric=metric,cutoff=cutoff)
@@ -86,11 +91,11 @@ calcOutcomes<-function(data,metric,threshold,cutoff=today,withTreatment){
     apply(1,sum)
   processedData<-cbind.data.frame(processedData,sum_scores)
   sanitized<-processedData %>%
-    select(PATIENT_ID_NUM,ASSESSMENT_TERM,sum_scores) %>%
+    select(PATIENT_ID_NUM,ASSESSMENT_POINT,sum_scores) %>%
     pivot_wider(id_cols=PATIENT_ID_NUM,
-                names_from=ASSESSMENT_TERM,
+                names_from=ASSESSMENT_POINT,
                 values_from = sum_scores) %>%
-    mutate(delta=`0`-`1`,
+    mutate(delta=Baseline-Endpoint,
             meetsThreshold=delta>=threshold)
   sanitized<-sanitized[complete.cases(sanitized),]
   res<-table(sanitized$meetsThreshold)/sum(table(sanitized$meetsThreshold)) * 100
@@ -98,12 +103,6 @@ calcOutcomes<-function(data,metric,threshold,cutoff=today,withTreatment){
 
 }
 
-#error handling needs to happen because some outcomes may not be calculable early on in the fiscal year
-#Some metrics only account for data that exists from the current fiscal year vs in the last rolling 12 months
-#
-calcOutcomesHandleErrors<-function(){
-  out<-try
-}
 
 #this function calculates the satisfation rate
 calcSatisfaction<-function(satisfaction,quarters) {
