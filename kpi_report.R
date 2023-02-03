@@ -110,7 +110,7 @@ calcSatisfaction<-function(satisfaction,quarters) {
     mutate(SURVEY_DATE=as.Date(SURVEY_DATE,"%Y-%m-%d")) %>%
     filter(!is.na(OVERALL_SATISFACTION),
            SERVICE_LINE == "IOP",
-           SURVEY_DATE>=quarters$startDates[5]) #1301
+           SURVEY_DATE>=determineFYStart(cutoff)) #1301
   positiveResponse<-filter(withResponse,OVERALL_SATISFACTION == "A" | OVERALL_SATISFACTION == "SA")
   res<-nrow(positiveResponse)/sum(!is.na(withResponse$OVERALL_SATISFACTION)) * 100
   return(res)
