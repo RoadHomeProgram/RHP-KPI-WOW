@@ -17,14 +17,13 @@ plotWCNParticipants<-function(visits,patients,masterListServices){
     filter(SERVICE_DATE <= '2022-09-30') %>%
     group_by(PATIENT_ID_NUM,SERVICE_LINE) %>%
     summarise(count=n())
-  table(table(visitCount$PATIENT_ID_NUM))
+
   multiHistorical<-names(table(visitCount$PATIENT_ID_NUM))[table(visitCount$PATIENT_ID_NUM)>1] 
   visitCount<-visits %>%
-    filter(SERVICE_DATE > '2022-09-30',
-           SERVICE_DATE < '2022-11-05') %>%
+    filter(SERVICE_DATE > '2022-09-30') %>%
     group_by(PATIENT_ID_NUM,SERVICE_LINE) %>%
     summarise(count=n())
-  table(table(visitCount$PATIENT_ID_NUM))
+
   multiFY2023<-names(table(visitCount$PATIENT_ID_NUM))[table(visitCount$PATIENT_ID_NUM)>1] 
   allMulti<-c(multiHistorical,multiFY2023)
   
@@ -33,8 +32,7 @@ plotWCNParticipants<-function(visits,patients,masterListServices){
     arrange() %>% distinct()
   
   annotatedVisits<-visits %>%
-    filter(SERVICE_PERFORMED %in% masterListServices$TreatmentID,
-           SERVICE_DATE < '2022-11-05') %>%
+    filter(SERVICE_PERFORMED %in% masterListServices$TreatmentID) %>%
     select(PATIENT_ID_NUM,SERVICE_LINE,SERVICE_DATE,FACILITY_NAME) %>%
     mutate(FY = if_else(SERVICE_DATE >= '2022-10-01','FY23','2015-06-01 to 2022-09-30')) %>%
     inner_join(patientType,by=c('PATIENT_ID_NUM')) %>%
