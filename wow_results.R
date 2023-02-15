@@ -61,32 +61,38 @@ plotWCNParticipants<-function(visits,patients,masterListServices){
 
 ## 2. Satisfaction Results All time
 calcSatisfactionRates<-function(satisfaction){
-  filled_satisfaction<-satisfaction %>%
-    filter(SERVICE_LINE == "IOP",
-           !is.na(RECOMMEND_PROGRAM) &
-             !is.na(OVERALL_SATISFACTION) &
-             !is.na(OVERCOME_BARRIERS) &
-             !is.na(IMPROVED_PROBLEMS))
+
   
   satisfactionRates<-data.frame(matrix(NA,nrow=4,ncol=4))
   colnames(satisfactionRates)<-c("Question","Survey Percentage","Agree/Strongly Agree","Total Surveys")
   
-  
+  filled_satisfaction<-satisfaction %>%
+    filter(SERVICE_LINE == "IOP",
+           !is.na(RECOMMEND_PROGRAM))
   satisfactionRates[1,1]<-"If I meet another veteran who is having a difficult time, I will recommend the AMC Program."
   satisfactionRates[1,2]<-sum((table(filled_satisfaction$RECOMMEND_PROGRAM)/nrow(filled_satisfaction)*100)[names(table(filled_satisfaction$RECOMMEND_PROGRAM)) == "A" | names(table(filled_satisfaction$RECOMMEND_PROGRAM)) == "SA"])
   satisfactionRates[1,3]<-sum(table(filled_satisfaction$RECOMMEND_PROGRAM)[names(table(filled_satisfaction$RECOMMEND_PROGRAM)) == "A" | names(table(filled_satisfaction$RECOMMEND_PROGRAM)) == "SA"])
   satisfactionRates[1,4]<-nrow(filled_satisfaction)
   
+  filled_satisfaction<-satisfaction %>%
+    filter(SERVICE_LINE == "IOP",
+             !is.na(OVERALL_SATISFACTION))
   satisfactionRates[2,1]<-"Overall, I feel satisfied by the clinical care I received at the AMC."
   satisfactionRates[2,2]<-sum((table(filled_satisfaction$OVERALL_SATISFACTION)/nrow(filled_satisfaction)*100)[names(table(filled_satisfaction$OVERALL_SATISFACTION)) == "A" | names(table(filled_satisfaction$OVERALL_SATISFACTION)) == "SA"])
   satisfactionRates[2,3]<-sum(table(filled_satisfaction$OVERALL_SATISFACTION)[names(table(filled_satisfaction$OVERALL_SATISFACTION)) == "A" | names(table(filled_satisfaction$OVERALL_SATISFACTION)) == "SA"])
   satisfactionRates[2,4]<-nrow(filled_satisfaction)
   
+  filled_satisfaction<-satisfaction %>%
+    filter(SERVICE_LINE == "IOP",
+             !is.na(OVERCOME_BARRIERS))
   satisfactionRates[3,1]<-"The AMC program helped me overcome barriers or obstacles to seek the care I needed, whether at the AMC or somewhere else."
   satisfactionRates[3,2]<-sum((table(filled_satisfaction$OVERCOME_BARRIERS)/nrow(filled_satisfaction)*100)[names(table(filled_satisfaction$OVERCOME_BARRIERS)) == "A" | names(table(filled_satisfaction$OVERCOME_BARRIERS)) == "SA"])
   satisfactionRates[3,3]<-sum(table(filled_satisfaction$OVERCOME_BARRIERS)[names(table(filled_satisfaction$OVERCOME_BARRIERS)) == "A" | names(table(filled_satisfaction$OVERCOME_BARRIERS)) == "SA"])
   satisfactionRates[3,4]<-nrow(filled_satisfaction)
   
+  filled_satisfaction<-satisfaction %>%
+    filter(SERVICE_LINE == "IOP",
+             !is.na(IMPROVED_PROBLEMS))
   satisfactionRates[4,1]<-"The care I received at AMC has improved the problems I needed help with."
   satisfactionRates[4,2]<-sum((table(filled_satisfaction$IMPROVED_PROBLEMS)/nrow(filled_satisfaction)*100)[names(table(filled_satisfaction$IMPROVED_PROBLEMS)) == "A" | names(table(filled_satisfaction$IMPROVED_PROBLEMS)) == "SA"])
   satisfactionRates[4,3]<-sum(table(filled_satisfaction$IMPROVED_PROBLEMS)[names(table(filled_satisfaction$IMPROVED_PROBLEMS)) == "A" | names(table(filled_satisfaction$IMPROVED_PROBLEMS)) == "SA"])
