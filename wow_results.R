@@ -13,34 +13,43 @@ source("/Users/ryanschubert/Documents/RHP-KPI-WOW/helpers.R")
 ## 1. Warrior Care Network Participants
 plotWCNParticipants<-function(visits,patients,masterListServices,cutoff){
   reportingCycleStart<-determineReportingCycleStart(cutoff)
-  FYStart<-as.Date(determineFYStart(today))
-  
-  visitCount<-visits %>%
-    filter(SERVICE_DATE < reportingCycleStart) %>%
-    group_by(PATIENT_ID_NUM,SERVICE_LINE) %>%
-    summarise(count=n())
-
-  multiHistorical<-names(table(visitCount$PATIENT_ID_NUM))[table(visitCount$PATIENT_ID_NUM)>1] 
-  visitCount<-visits %>%
-    filter(SERVICE_DATE < reportingCycleStart,
-           SERVICE_DATE >= FYStart) %>%
-    group_by(PATIENT_ID_NUM,SERVICE_LINE) %>%
-    summarise(count=n())
-
-  multiFYCurrent<-names(table(visitCount$PATIENT_ID_NUM))[table(visitCount$PATIENT_ID_NUM)>1] 
-  allMulti<-c(multiHistorical,multiFYCurrent)
+  FYStart<-as.Date(determineFYStart(cutoff))
   
   patientType<-patients %>%
     select(PATIENT_ID_NUM,PATIENT_TYPE) %>%
     arrange() %>% distinct()
   
+  visits<-visits %>%
+    inner_join(patientType,by=c('PATIENT_ID_NUM')) 
+  patientSubset<-visits %>%
+    filter(!(SERVICE_LINE == 'IOP' & PATIENT_TYPE == 'FAM' & FACILITY_NAME != 'UCLA'),
+           SERVICE_DURATION > 0,
+           SERVICE_DATE < reportingCycleStart,
+           SERVICE_PERFORMED %in% masterListServices$TreatmentID) %>%
+    select(PATIENT_ID_NUM) %>% arrange() %>% distinct() %>% unlist() %>% unname()
+  
+  visitCount<-visits %>%
+    filter(PATIENT_ID_NUM %in% patientSubset) %>%
+    group_by(PATIENT_ID_NUM,SERVICE_LINE) %>%
+    summarise(count=n())
+  multiHistorical<-names(table(visitCount$PATIENT_ID_NUM))[table(visitCount$PATIENT_ID_NUM)>1] 
+  
+  visitCount<-visits %>%
+    filter(PATIENT_ID_NUM %in% patientSubset,
+           SERVICE_DATE >= FYStart) %>%
+    group_by(PATIENT_ID_NUM,SERVICE_LINE) %>%
+    summarise(count=n())
+  multiFYCurrent<-names(table(visitCount$PATIENT_ID_NUM))[table(visitCount$PATIENT_ID_NUM)>1] 
+  
+  allMulti<-c(multiHistorical,multiFYCurrent)
+  
+
   annotatedVisitsAllTime<-visits %>%
-    filter(SERVICE_PERFORMED %in% masterListServices$TreatmentID) %>%
-    select(PATIENT_ID_NUM,SERVICE_LINE,SERVICE_DATE,FACILITY_NAME) %>%
+    filter(PATIENT_ID_NUM %in% patientSubset,
+           SERVICE_DATE < reportingCycleStart) %>%
+    select(PATIENT_ID_NUM,PATIENT_TYPE,SERVICE_LINE,SERVICE_DATE,FACILITY_NAME) %>%
     mutate(FY = '2015-06-01 to ' %&% reportingCycleStart) %>%
-    inner_join(patientType,by=c('PATIENT_ID_NUM')) %>%
-    filter(!(SERVICE_LINE == 'IOP' & PATIENT_TYPE == 'FAM')) %>%
-    mutate(SERVICE_LINE = if_else((PATIENT_ID_NUM %in% multiHistorical & SERVICE_DATE < FYStart) ,
+    mutate(SERVICE_LINE = if_else(PATIENT_ID_NUM %in% multiHistorical & (PATIENT_TYPE != 'FAM' | FACILITY_NAME == 'UCLA'),
                                   'OP/IOP',
                                   SERVICE_LINE),
            colorGroup='breakdown') %>%
@@ -49,13 +58,10 @@ plotWCNParticipants<-function(visits,patients,masterListServices,cutoff){
     distinct()
     # (PATIENT_ID_NUM %in% multiFYCurrent & SERVICE_DATE >= FYStart)
   annotatedVisitsFY<-visits %>%
-    filter(SERVICE_PERFORMED %in% masterListServices$TreatmentID,
-           SERVICE_DATE >= FYStart) %>%
-    select(PATIENT_ID_NUM,SERVICE_LINE,SERVICE_DATE,FACILITY_NAME) %>%
+    filter(PATIENT_ID_NUM %in% patientSubset,SERVICE_DATE >= FYStart) %>%
+    select(PATIENT_ID_NUM,PATIENT_TYPE,SERVICE_LINE,SERVICE_DATE,FACILITY_NAME) %>%
     mutate(FY = 'FY' %&% determineFiscalYear(cutoff)) %>%
-    inner_join(patientType,by=c('PATIENT_ID_NUM')) %>%
-    filter(!(SERVICE_LINE == 'IOP' & PATIENT_TYPE == 'FAM')) %>%
-    mutate(SERVICE_LINE = if_else((PATIENT_ID_NUM %in% multiFYCurrent & SERVICE_DATE >= FYStart) ,
+    mutate(SERVICE_LINE = if_else(PATIENT_ID_NUM %in% multiHistorical & (PATIENT_TYPE != 'FAM' | FACILITY_NAME == 'UCLA'),
                                   'OP/IOP',
                                   SERVICE_LINE),
            colorGroup='breakdown') %>%
