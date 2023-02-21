@@ -19,6 +19,13 @@ timestamp<-gsub(' ','_',now())
 # date helpers
 today<-Sys.Date()
 
+determineReportingCycleStart<-function(date){
+  month<-as.numeric(format(as.Date(date),'%m'))
+  year<-as.numeric(format(as.Date(date), '%Y'))
+  cycleStart<-ifelse(month==1, (year-1) %&% '-12-01',year %&% '-' %&% (month -1) %&% '-01')
+  return(cycleStart)
+}
+
 determineFiscalYear<-function(date){
   year<-as.numeric(format(as.Date(date), '%Y'))
   FY<-ifelse(date >= year %&% "-10-01",(year + 1),year)
