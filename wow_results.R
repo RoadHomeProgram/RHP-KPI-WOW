@@ -120,7 +120,8 @@ calcSatisfactionRates<-function(satisfaction){
 }
 
 ## 3. Service Utilization Summary
-calcServiceUtilization<-function(visits,cycleStart){
+calcServiceUtilization<-function(visits,cutoffDate){
+  cycleStart<-determineReportingCycleStart(cutoffDate)
   sessionCounts<-visits %>%
     mutate(IOP_START_DATE=as.Date(IOP_START_DATE, format="%Y-%m-%d"),
     ) %>%
@@ -277,8 +278,6 @@ generateWowResults<-function(assessments,patients,visits,
                              referrals,satisfaction,masterListServices,
                              out.dir,cutoffDate) {
   
-  cycleStart<-as.Date(format(as.Date(format(cutoffDate, "%Y-%m-01")) -1,"%Y-%m-01"))
-  
   ## 1. Warrior Care Network Participants
   barPlot<-plotWCNParticipants(visits,patients,masterListServices,cutoffDate)
   
@@ -286,7 +285,7 @@ generateWowResults<-function(assessments,patients,visits,
   satisfactionTable<-calcSatisfactionRates(satisfaction)
   
   ## 3. Service Utilization Summary
-  utilizationSummary<-calcServiceUtilization(visits,cycleStart)
+  utilizationSummary<-calcServiceUtilization(visits,cutoffDate)
   
   ## 4. completion rate
   completionRate<-calcCompletionRate(patients,assessments,visits)
