@@ -7,6 +7,7 @@ source(source.dir %&% 'research_grade_dataset.R')
 source(source.dir %&% 'kpi_report.R')
 source(source.dir %&% 'wow_results.R')
 
+today=as.Date('2022-09-01')
 
 #define some global variables we will need later
 MGH.dir<-"/Users/ryanschubert/Dropbox (Rush)/WCN Data/processedData/dashboardData/MGH/"
@@ -63,7 +64,7 @@ generateWowResults(assessments=assessments,
                    out.dir='/Users/ryanschubert/Dropbox (Rush)/WCN Data/reports/',
                    cutoffDate=today)
 
-for (site in c("MGH","RUSH","UCLA")) {
+for (site in c("EMORY",'MGH','RUSH','UCLA')) {
   assessmentsSubset<-assessments %>% filter(FACILITY_NAME==site)
   patientsSubset<-patients %>% filter(FACILITY_NAME==site)
   visitsSubset<-visits %>% filter(FACILITY_NAME==site)
@@ -76,7 +77,7 @@ for (site in c("MGH","RUSH","UCLA")) {
                     referrals=referralsSubset,
                     satisfaction=satisfactionSubset, 
                     master_list_services=master_list_services,
-                    out.dir='/Users/ryanschubert/Dropbox (Rush)/WCN Data/reports/' %&% site %&% '_',
+                    out.dir='/Users/ryanschubert/Documents/RHP-KPI-WOW/test/' %&% site %&% '_',
                     cutoffDate=today)
   
   #generate the wow report
@@ -86,7 +87,7 @@ for (site in c("MGH","RUSH","UCLA")) {
                      referrals=referralsSubset,
                      satisfaction=satisfactionSubset, 
                      masterListServices=master_list_services,
-                     out.dir='/Users/ryanschubert/Dropbox (Rush)/WCN Data/reports/' %&% site %&% '_',
+                     out.dir='/Users/ryanschubert/Documents/RHP-KPI-WOW/test/' %&% site %&% '_',
                      cutoffDate=today)
 }
 
