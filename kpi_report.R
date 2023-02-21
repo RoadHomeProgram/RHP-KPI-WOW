@@ -90,22 +90,33 @@ calcOutcomes<-function(data,metric,threshold,cutoff=today,withTreatment){
     select(contains("ASSESSMENT_RESPONSE_VALUE")) %>%
     apply(1,sum)
   processedData<-cbind.data.frame(processedData,sum_scores)
-  sanitized<-processedData %>%
-    select(PATIENT_ID_NUM,ASSESSMENT_POINT,sum_scores) %>%
-    pivot_wider(id_cols=PATIENT_ID_NUM,
-                names_from=ASSESSMENT_POINT,
-                values_from = sum_scores) %>%
-    mutate(delta=Baseline-Endpoint,
-            meetsThreshold=delta>=threshold)
-  sanitized<-sanitized[complete.cases(sanitized),]
-  res<-table(sanitized$meetsThreshold)/sum(table(sanitized$meetsThreshold)) * 100
-  return(res[2])
-
+  #add a try catch - if can't calculate the statistic return an NA
+  out <- tryCatch(
+    {
+      sanitized<-processedData %>%
+        select(PATIENT_ID_NUM,ASSESSMENT_POINT,sum_scores) %>%
+        pivot_wider(id_cols=PATIENT_ID_NUM,
+                    names_from=ASSESSMENT_POINT,
+                    values_from = sum_scores) %>%
+        mutate(delta=Baseline-Endpoint,
+               meetsThreshold=delta>=threshold)
+      sanitized<-sanitized[complete.cases(sanitized),]
+      res<-table(sanitized$meetsThreshold)/sum(table(sanitized$meetsThreshold)) * 100
+      return(res[2])
+    },
+    error=function(cond) {
+      message("Failed to calculate result")
+      message(cond)
+      # Choose a return value in case of error
+      return(NA)
+    }
+  )  
+  return(out) 
 }
 
 
 #this function calculates the satisfation rate
-calcSatisfaction<-function(satisfaction,quarters) {
+calcSatisfaction<-function(satisfaction,cutoff) {
   withResponse<-satisfaction %>%
     mutate(SURVEY_DATE=as.Date(SURVEY_DATE,"%Y-%m-%d")) %>%
     filter(!is.na(OVERALL_SATISFACTION),
@@ -416,7 +427,7 @@ generateKPIreport<-function(assessments,patients,visits,referrals,satisfaction, 
 
   
   table1<-createTable1(assessments,cutoff=cutoffDate,withTreatment)
-  table1[7,2]<-calcSatisfaction(satisfaction,quarters)
+  table1[7,2]<-calcSatisfaction(satisfaction,cutoffDate)
     
   tables2_3_4_5<-createTables2_3_4_5(patients,visits,quarters)
   
