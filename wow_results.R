@@ -158,8 +158,9 @@ calcServiceUtilization<-function(visits,cutoffDate){
 }
 
 ## 4. completion rate
-calcCompletionRate<-function(patients,assessments,visits) {
-  
+calcCompletionRate<-function(patients,assessments,visits,cutoff) {
+  assessments<-filter(assessments,ASSESSMENT_DATE < determineReportingCycleStart(cutoff))
+  assessments<-filter(assessments,SERVICE_DATE < determineReportingCycleStart(cutoff))
   warriors <- patients %>%
     filter(PATIENT_TYPE=='VET') %>%
     select(PATIENT_ID_NUM) %>%
@@ -177,7 +178,7 @@ calcCompletionRate<-function(patients,assessments,visits) {
     unlist()
   
   warriorsAtEndpoint<-assessments %>%
-    filter(ASSESSMENT_TERM==1,
+    filter(ASSESSMENT_TERM %in% c(1, 9001, 9002, 9003),
            SERVICE_LINE=='IOP',
            PATIENT_ID_NUM %in% warriors) %>%
     select(PATIENT_ID_NUM) %>%
@@ -294,7 +295,7 @@ generateWowResults<-function(assessments,patients,visits,
   utilizationSummary<-calcServiceUtilization(visits,cutoffDate)
   
   ## 4. completion rate
-  completionRate<-calcCompletionRate(patients,assessments,visits)
+  completionRate<-calcCompletionRate(patients,assessments,visits,cutoffDate)
   
   ## 5. warrior outcomes
   pclPlot<-generateOutcomePlot(assessments,metric='PCL')
