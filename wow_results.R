@@ -160,7 +160,7 @@ calcServiceUtilization<-function(visits,cutoffDate){
 ## 4. completion rate
 calcCompletionRate<-function(patients,assessments,visits,cutoff) {
   assessments<-filter(assessments,ASSESSMENT_DATE < determineReportingCycleStart(cutoff))
-  assessments<-filter(assessments,SERVICE_DATE < determineReportingCycleStart(cutoff))
+  visits<-filter(visits,SERVICE_DATE < determineReportingCycleStart(cutoff))
   warriors <- patients %>%
     filter(PATIENT_TYPE=='VET') %>%
     select(PATIENT_ID_NUM) %>%
