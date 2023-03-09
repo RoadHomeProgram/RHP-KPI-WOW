@@ -80,19 +80,19 @@ calcOutcomes<-function(data,metric,threshold,cutoff=today,withTreatment){
   }
   removeEmpty<-!emptyColumns(processedData)
   processedData<-processedData[,..removeEmpty]
-  processedData<-processedData %>%
-    mutate(ASSESSMENT_DATE=as.Date(ASSESSMENT_DATE, format="%m/%d/%Y")) %>%
-    group_by(PATIENT_ID_NUM,ASSESSMENT_POINT) %>%
-    slice_max(ASSESSMENT_DATE,n=1,with_ties = F) %>%
-    ungroup() %>%
-    inFiscalYear(metric=metric,cutoff=cutoff)
-  sum_scores<-processedData %>% 
-    select(contains("ASSESSMENT_RESPONSE_VALUE")) %>%
-    apply(1,sum)
-  processedData<-cbind.data.frame(processedData,sum_scores)
   #add a try catch - if can't calculate the statistic return an NA
   out <- tryCatch(
     {
+      processedData<-processedData %>%
+        mutate(ASSESSMENT_DATE=as.Date(ASSESSMENT_DATE, format="%m/%d/%Y")) %>%
+        group_by(PATIENT_ID_NUM,ASSESSMENT_POINT) %>%
+        slice_max(ASSESSMENT_DATE,n=1,with_ties = F) %>%
+        ungroup() %>%
+        inFiscalYear(metric=metric,cutoff=cutoff)
+      sum_scores<-processedData %>% 
+        select(contains("ASSESSMENT_RESPONSE_VALUE")) %>%
+        apply(1,sum)
+      processedData<-cbind.data.frame(processedData,sum_scores)
       sanitized<-processedData %>%
         select(PATIENT_ID_NUM,ASSESSMENT_POINT,sum_scores) %>%
         pivot_wider(id_cols=PATIENT_ID_NUM,
@@ -368,6 +368,17 @@ patientsInFiscalYear<-function(visits,quarters) {
   return(patients)
 }
 
+patientsInTrailingTwelveMonths<-function(visits,cutoff) {
+  patients<-visits %>%
+    mutate(SERVICE_DATE = as.Date(SERVICE_DATE,"%Y-%m-%d")) %>%
+    filter(SERVICE_DATE >= cutoff - months(12)) %>%
+    select(PATIENT_ID_NUM) %>%
+    arrange() %>%
+    distinct() %>%
+    unlist() %>%
+    unname()
+  return(patients)
+}
 
 #Grabs the unique list of patients that visited in the last year
 #grabs the most recent visit for each patient in each service line
@@ -401,8 +412,8 @@ tabulateVisits<-function(visits,patients,quarters) {
 }
 
 
-generateTables16_17<-function(visits,patients,quarters) {
-  patientIDs<-patientsInFiscalYear(visits,quarters)
+generateTables16_17<-function(visits,patients,quarters,cutoff) {
+  patientIDs<-patientsInTrailingTwelveMonths(visits,cutoff)
 
   table16<-patients %>%
     filter(PATIENT_ID_NUM %in% patientIDs) %>%
@@ -435,7 +446,7 @@ generateKPIreport<-function(assessments,patients,visits,referrals,satisfaction, 
   
   tables7To15<-createDaysUntilTables(visits,referrals,patients,quarters,withTreatment,veterans)
 
-  tables16_17<-generateTables16_17(visits,patients,quarters)
+  tables16_17<-generateTables16_17(visits,patients,quarters,cutoff = cutoffDate)
   
   outputList<-list(
     overall_outcomes=table1,

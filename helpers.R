@@ -66,3 +66,5 @@ determineFYStart<-function(date) {
   year<-as.numeric(format(date, '%Y'))
   return(ifelse(date > year %&% '-10-01',year %&% '-10-01', (year - 1) %&% '-10-01'))
 }
+
+

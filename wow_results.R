@@ -210,9 +210,6 @@ calcCompletionRate<-function(patients,assessments,visits,cutoff) {
 ## 5. warrior outcomes
 
 extractTimepoint<-function(data,metric,timepoint){
-  
-  
-  
   metricData<-data %>% 
     mutate(ASSESSMENT_DATE=as.Date(ASSESSMENT_DATE, format="%Y-%m-%d")) %>%
     filter(ASSESSMENT_TERM == 1 | ASSESSMENT_TERM == 0,
