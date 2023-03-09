@@ -50,11 +50,12 @@ getVetRecordIDs<-function(patients){
   return(veterans)
 }
 #this function processes the assessments to calculate the percentage of individuals meeting some change sore threshold on a given metric in the current fiscal year
-calcOutcomes<-function(data,metric,threshold,cutoff=today,withTreatment){
+calcOutcomes<-function(data,metric,threshold,cutoff=today,withTreatment,veterans){
   processedData<-data %>%
     filter(grepl(metric,ASSESSMENT_TYPE,ignore.case=T),
     ASSESSMENT_TERM == assessmentTermEnd(metric) | ASSESSMENT_TERM == 0,
-    PATIENT_ID_NUM %in% withTreatment) %>%
+    PATIENT_ID_NUM %in% withTreatment,
+    PATIENT_ID_NUM %in% veterans) %>%
     mutate(ASSESSMENT_POINT=case_when(
       ASSESSMENT_TERM==0 ~ 'Baseline',
       ASSESSMENT_TERM==assessmentTermEnd(metric) ~ 'Endpoint',
@@ -115,7 +116,7 @@ calcSatisfaction<-function(satisfaction,cutoff) {
 }
 
 #this function goes through each outcome and calculates the result
-createTable1<-function(assessments,cutoff=today,withTreatment){
+createTable1<-function(assessments,cutoff=today,withTreatment,veterans){
   questions<-c(
     "% of participants that reduce their PCL score by 5 points or more",
     "% of participants that reduce their PCL score by 10 points or more",
@@ -128,12 +129,12 @@ createTable1<-function(assessments,cutoff=today,withTreatment){
   table1<-data.frame(question=questions,
                      value=rep(NA,7))
   
-  table1[1,2]<-calcOutcomes(data=assessments,metric='PCL',threshold=5,cutoff=cutoff,withTreatment=withTreatment)
-  table1[2,2]<-calcOutcomes(data=assessments,metric='PCL',threshold=10,cutoff=cutoff,withTreatment=withTreatment)
-  table1[3,2]<-calcOutcomes(data=assessments,metric='PHQ',threshold=3,cutoff=cutoff,withTreatment=withTreatment)
-  table1[4,2]<-100-calcOutcomes(data=assessments,metric='CDRISC',threshold=-1,cutoff=cutoff,withTreatment=withTreatment)
-  table1[5,2]<-100-calcOutcomes(data=assessments,metric='MCS',threshold=-2,cutoff=cutoff,withTreatment=withTreatment)
-  table1[6,2]<-100-calcOutcomes(data=assessments,metric='PCS',threshold=-2,cutoff=cutoff,withTreatment=withTreatment)
+  table1[1,2]<-calcOutcomes(data=assessments,metric='PCL',threshold=5,cutoff=cutoff,withTreatment=withTreatment,veterans)
+  table1[2,2]<-calcOutcomes(data=assessments,metric='PCL',threshold=10,cutoff=cutoff,withTreatment=withTreatment,veterans)
+  table1[3,2]<-calcOutcomes(data=assessments,metric='PHQ',threshold=3,cutoff=cutoff,withTreatment=withTreatment,veterans)
+  table1[4,2]<-100-calcOutcomes(data=assessments,metric='CDRISC',threshold=-2,cutoff=cutoff,withTreatment=withTreatment,veterans)
+  table1[5,2]<-100-calcOutcomes(data=assessments,metric='MCS',threshold=-2,cutoff=cutoff,withTreatment=withTreatment,veterans)
+  table1[6,2]<-100-calcOutcomes(data=assessments,metric='PCS',threshold=-2,cutoff=cutoff,withTreatment=withTreatment,veterans)
   return(table1)
 }
 
@@ -424,7 +425,7 @@ generateKPIreport<-function(assessments,patients,visits,referrals,satisfaction, 
   quarters<-createQuarterTemplate(cutoffDate)
 
   
-  table1<-createTable1(assessments,cutoff=cutoffDate,withTreatment)
+  table1<-createTable1(assessments,cutoff=cutoffDate,withTreatment,veterans)
   table1[7,2]<-calcSatisfaction(satisfaction,cutoffDate)
     
   tables2_3_4_5<-createTables2_3_4_5(patients,visits,quarters)
