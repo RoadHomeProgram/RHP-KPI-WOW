@@ -186,7 +186,7 @@ calcCompletionRate<-function(patients,assessments,visits,cutoff) {
     unlist()
   
   baselineN<-visits %>% 
-    filter(PATIENT_ID_NUM %in% warriorsAtBaseline,
+    filter(PATIENT_ID_NUM %in% warriors,
            SERVICE_LINE == 'IOP',
            IOP_START_DATE != '1900-01-01',
            SERVICE_DURATION >0) %>%
