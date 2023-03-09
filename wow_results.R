@@ -209,14 +209,15 @@ calcCompletionRate<-function(patients,assessments,visits,cutoff) {
 
 ## 5. warrior outcomes
 
-extractTimepoint<-function(data,metric,timepoint){
+extractTimepoint<-function(data,metric,timepoint,withTreatment){
   metricData<-data %>% 
     mutate(ASSESSMENT_DATE=as.Date(ASSESSMENT_DATE, format="%Y-%m-%d")) %>%
     filter(ASSESSMENT_TERM == 1 | ASSESSMENT_TERM == 0,
            !(ASSESSMENT_TERM == 1 & ASSESSMENT_TYPE == 'PCL5'),
            !(ASSESSMENT_TERM == 0 & ASSESSMENT_TYPE == 'PCL5W'),
            ASSESSMENT_TYPE %in% c("PCL5","PCL5W","CDRISC","NSI","PHQ9"),
-           SERVICE_LINE == "IOP") %>%
+           SERVICE_LINE == "IOP",
+           PATIENT_ID_NUM %in% withTreatment) %>%
     group_by(PATIENT_ID_NUM,ASSESSMENT_TYPE,ASSESSMENT_TERM) %>%
     slice_max(ASSESSMENT_DATE,n=1,with_ties = F) %>%
     pivot_wider(id_cols=PATIENT_ID_NUM,names_from=c(ASSESSMENT_TYPE,ASSESSMENT_TERM),values_from = starts_with("ASSESSMENT_RESPONSE_VALUE")) %>%
@@ -267,9 +268,9 @@ plotOutcome<-function(input,metric) {
 ### CDRISC
 ### NSI
 
-generateOutcomePlot<-function(data,metric){
-  baselineData<-extractTimepoint(data,metric,timepoint=0)
-  postData<-extractTimepoint(data,metric,timepoint=1)
+generateOutcomePlot<-function(data,metric,withTreatment){
+  baselineData<-extractTimepoint(data,metric,timepoint=0,withTreatment)
+  postData<-extractTimepoint(data,metric,timepoint=1,withTreatment)
   
   plotInput<-formatPlotInput(baselineData,postData)
   
@@ -277,10 +278,11 @@ generateOutcomePlot<-function(data,metric){
   return(plot)
 }
 
-
 generateWowResults<-function(assessments,patients,visits,
                              referrals,satisfaction,masterListServices,
                              out.dir,cutoffDate) {
+
+  withTreatment<-getWithTreatmentRecordIDs(visits,masterListServices)
   
   ## 1. Warrior Care Network Participants
   barPlot<-plotWCNParticipants(visits,patients,masterListServices,cutoffDate)
@@ -295,10 +297,10 @@ generateWowResults<-function(assessments,patients,visits,
   completionRate<-calcCompletionRate(patients,assessments,visits,cutoffDate)
   
   ## 5. warrior outcomes
-  pclPlot<-generateOutcomePlot(assessments,metric='PCL')
-  phqPlot<-generateOutcomePlot(assessments,metric='PHQ')
-  cdriscPlot<-generateOutcomePlot(assessments,metric='CDRISC')
-  nsiPlot<-generateOutcomePlot(assessments,metric='NSI')
+  pclPlot<-generateOutcomePlot(assessments,metric='PCL',withTreatment)
+  phqPlot<-generateOutcomePlot(assessments,metric='PHQ',withTreatment)
+  cdriscPlot<-generateOutcomePlot(assessments,metric='CDRISC',withTreatment)
+  nsiPlot<-generateOutcomePlot(assessments,metric='NSI',withTreatment)
   
   outputList<-list(satisfaction=satisfactionTable,
                    sessions=utilizationSummary[[1]],

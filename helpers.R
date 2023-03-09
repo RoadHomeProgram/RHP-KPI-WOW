@@ -67,4 +67,14 @@ determineFYStart<-function(date) {
   return(ifelse(date > year %&% '-10-01',year %&% '-10-01', (year - 1) %&% '-10-01'))
 }
 
-
+#this function returns an array with veterans who have at least one treatment according to the master list of therapies
+getWithTreatmentRecordIDs<-function(data,services=master_list_services) {
+  withTreatment<-data %>%
+    filter(SERVICE_PERFORMED %in% services$TreatmentID) %>%
+    select(PATIENT_ID_NUM) %>%
+    arrange() %>%
+    distinct() %>%
+    unlist() %>%
+    unname()
+  return(withTreatment)
+}

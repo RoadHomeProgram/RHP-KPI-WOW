@@ -37,19 +37,6 @@ inFiscalYear<-function(data,metric,cutoff=today) {
   return(data)
 }
 
-
-#this function returns an array with veterans who have at least one treatment according to the master list of therapies
-getWithTreatmentRecordIDs<-function(data,services=master_list_services) {
-  withTreatment<-data %>%
-    filter(SERVICE_PERFORMED %in% services$TreatmentID) %>%
-    select(PATIENT_ID_NUM) %>%
-    arrange() %>%
-    distinct() %>%
-    unlist() %>%
-    unname()
-  return(withTreatment)
-}
-
 #this function returns an array with veteran IDs
 getVetRecordIDs<-function(patients){
   veterans<-patients %>%

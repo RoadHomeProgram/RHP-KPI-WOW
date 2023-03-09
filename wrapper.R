@@ -61,7 +61,7 @@ generateWowResults(assessments=assessments,
                    referrals=referrals,
                    satisfaction=satisfaction, 
                    masterListServices=master_list_services,
-                   out.dir='/Users/ryanschubert/Dropbox (Rush)/WCN Data/reports/',
+                   out.dir='/Users/ryanschubert/Documents/RHP-KPI-WOW/test/',
                    cutoffDate=today)
 
 for (site in c('EMORY')) {
