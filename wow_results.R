@@ -221,11 +221,14 @@ extractTimepoint<-function(data,metric,timepoint,withTreatment){
     group_by(PATIENT_ID_NUM,ASSESSMENT_TYPE,ASSESSMENT_TERM) %>%
     slice_max(ASSESSMENT_DATE,n=1,with_ties = F) %>%
     pivot_wider(id_cols=PATIENT_ID_NUM,names_from=c(ASSESSMENT_TYPE,ASSESSMENT_TERM),values_from = starts_with("ASSESSMENT_RESPONSE_VALUE")) %>%
-    select(PATIENT_ID_NUM,contains(metric))
+    select(PATIENT_ID_NUM,contains(metric)) %>%
+    select(-contains("VALUE10_PHQ9"))
 
   empty_cols<-apply(metricData,2,function(x){sum(is.na(x))})
   metricData<-metricData[,empty_cols != nrow(metricData)]
   metricData<-metricData[complete.cases(metricData),]
+  
+  
   
   timepointData<-metricData %>% 
     select(PATIENT_ID_NUM, contains("_" %&% timepoint))  %>%
